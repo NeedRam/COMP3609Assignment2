@@ -56,10 +56,13 @@ public class GamePanel extends JPanel {
     private ArrayList<ImageFX> effects;
     private String activeEffectName;
     
+    // Full screen grayscale effect for win condition
+    private GrayScaleFX screenGrayScaleFX;
+    
     // Collectibles tracking
     private int collectedCount;
     private int totalCollectibles;
-    private static final int WIN_COLLECTIBLES = 11;
+    private static final int WIN_COLLECTIBLES = 11; // Number of collectibles required to win
     
     // FPS tracking
     private long lastFrameTime;
@@ -73,6 +76,11 @@ public class GamePanel extends JPanel {
     private long goldenTintTimer;
     private static final long GOLDEN_TINT_DURATION = 1000; // 1 second in milliseconds
     private static final int GOLDEN_TINT_COLOR = 0x80FFD700; // Semi-transparent golden (ARGB)
+    
+    // Game over exit timer
+    private long gameOverTime;
+    private static final long GAME_OVER_EXIT_DELAY = 3000; // 3 seconds in milliseconds
+    private boolean gameExiting;
     
     // Info panel reference
     private InfoPanel infoPanel;
@@ -109,6 +117,9 @@ public class GamePanel extends JPanel {
         
         activeEffectName = "None";
         
+        // Initialize grayscale effect
+        screenGrayScaleFX = null;
+        
         soundManager = SoundManager.getInstance();
         
         // Initialize random generator
@@ -135,6 +146,10 @@ public class GamePanel extends JPanel {
         // Initialize golden tint effect
         goldenTintActive = false;
         goldenTintTimer = 0;
+        
+        // Initialize game over exit timer
+        gameOverTime = 0;
+        gameExiting = false;
     }
     
     /**
@@ -449,6 +464,11 @@ public class GamePanel extends JPanel {
         gameOver = false;
         activeEffectName = "None";
         
+        // Reset grayscale effect and exit timer
+        screenGrayScaleFX = null;
+        gameOverTime = 0;
+        gameExiting = false;
+        
         createGameEntities();
         
         // Start background music
@@ -489,11 +509,48 @@ public class GamePanel extends JPanel {
         gameRunning = false;
         soundManager.stopAll();
         
+        // Set game over timestamp for exit timer
+        gameOverTime = System.currentTimeMillis();
+        gameExiting = false;
+        
         if (won) {
             activeEffectName = "GrayScale";
+            // Create full-screen grayscale effect for the background (instant, no fade)
+            if (backgroundImage != null) {
+                // Create grayscale version of background
+                BufferedImage grayBg = new BufferedImage(backgroundImage.getWidth(), backgroundImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2 = grayBg.createGraphics();
+                g2.drawImage(backgroundImage, 0, 0, null);
+                g2.dispose();
+                
+                // Convert to grayscale
+                int[] pixels = new int[grayBg.getWidth() * grayBg.getHeight()];
+                grayBg.getRGB(0, 0, grayBg.getWidth(), grayBg.getHeight(), pixels, 0, grayBg.getWidth());
+                for (int i = 0; i < pixels.length; i++) {
+                    int alpha = (pixels[i] >> 24) & 255;
+                    int red = (pixels[i] >> 16) & 255;
+                    int green = (pixels[i] >> 8) & 255;
+                    int blue = pixels[i] & 255;
+                    int gray = (int)(0.299 * red + 0.587 * green + 0.114 * blue);
+                    pixels[i] = (alpha << 24) | (gray << 16) | (gray << 8) | gray;
+                }
+                grayBg.setRGB(0, 0, grayBg.getWidth(), grayBg.getHeight(), pixels, 0, grayBg.getWidth());
+                
+                screenGrayScaleFX = new GrayScaleFX(0, 0, WORLD_WIDTH, WORLD_HEIGHT, backgroundImage, grayBg);
+            }
         }
         
         repaint();
+        
+        // Schedule game exit after 3 seconds using Swing Timer
+        javax.swing.Timer exitTimer = new javax.swing.Timer(1500, new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                System.exit(0);
+            }
+        });
+        exitTimer.setRepeats(false);
+        exitTimer.start();
     }
     
     public void updatePlayer() {
@@ -656,6 +713,11 @@ public class GamePanel extends JPanel {
         for (ImageFX effect : effects) {
             effect.update();
         }
+        
+        // Update screen grayscale effect
+        if (screenGrayScaleFX != null) {
+            screenGrayScaleFX.update();
+        }
     }
     
     public void drawGameEntities() {
@@ -684,6 +746,16 @@ public class GamePanel extends JPanel {
         super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g;
         
+        // Check if we should exit the game (3 seconds after game over)
+        if (gameOver && gameOverTime > 0 && !gameExiting) {
+            long elapsed = System.currentTimeMillis() - gameOverTime;
+            if (elapsed >= GAME_OVER_EXIT_DELAY) {
+                gameExiting = true;
+                // Exit the game
+                System.exit(0);
+            }
+        }
+        
         // Use double buffering
         if (doubleBufferImage != null) {
             // Draw to buffer
@@ -701,6 +773,9 @@ public class GamePanel extends JPanel {
     }
     
     private void drawToBuffer(Graphics2D g2) {
+        // Check if we should apply grayscale effect (when all 11 coins collected and game over)
+        boolean applyGrayScale = (gameOver && collectedCount >= WIN_COLLECTIBLES && screenGrayScaleFX != null);
+        
         // Clear background
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, getWidth(), getHeight());
@@ -754,8 +829,8 @@ public class GamePanel extends JPanel {
             effect.draw(g2);
         }
         
-        // Draw golden tint overlay if active
-        if (goldenTintActive) {
+        // Draw golden tint overlay if active (but not when grayscale effect is active)
+        if (goldenTintActive && !applyGrayScale) {
             g2.setColor(new Color(
                 (GOLDEN_TINT_COLOR >> 16) & 0xFF,
                 (GOLDEN_TINT_COLOR >> 8) & 0xFF,
@@ -765,23 +840,55 @@ public class GamePanel extends JPanel {
             g2.fillRect(0, 0, getWidth(), getHeight());
         }
         
+        // Apply grayscale to entire screen if needed (including all game entities)
+        if (applyGrayScale && doubleBufferImage != null) {
+            // Get pixels from the double buffer
+            int width = getWidth();
+            int height = getHeight();
+            
+            // Create a copy to convert to grayscale
+            BufferedImage grayImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D gGray = grayImage.createGraphics();
+            gGray.drawImage(doubleBufferImage, 0, 0, null);
+            gGray.dispose();
+            
+            // Convert to grayscale using pixel manipulation
+            int[] pixels = new int[width * height];
+            grayImage.getRGB(0, 0, width, height, pixels, 0, width);
+            
+            for (int i = 0; i < pixels.length; i++) {
+                int alpha = (pixels[i] >> 24) & 255;
+                int red = (pixels[i] >> 16) & 255;
+                int green = (pixels[i] >> 8) & 255;
+                int blue = pixels[i] & 255;
+                
+                // Standard grayscale conversion formula
+                int gray = (int)(0.299 * red + 0.587 * green + 0.114 * blue);
+                
+                pixels[i] = (alpha << 24) | (gray << 16) | (gray << 8) | gray;
+            }
+            
+            grayImage.setRGB(0, 0, width, height, pixels, 0, width);
+            
+            // Draw the grayscale version
+            g2.drawImage(grayImage, 0, 0, null);
+        }
+        
         // Draw game over screen
         if (gameOver) {
-            // Apply grayscale effect to entire screen
-            g2.setColor(new Color(0, 0, 0, 150));
-            g2.fillRect(0, 0, getWidth(), getHeight());
+            if (!applyGrayScale) {
+                // Dark overlay for regular game over (not all coins collected)
+                g2.setColor(new Color(0, 0, 0, 150));
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            }
             
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 48));
             
-            if (collectedCount >= WIN_COLLECTIBLES) {
-                g2.drawString("You Win!", 280, 280);
-            } else {
-                g2.drawString("Game Over", 270, 280);
-            }
+            // Always show "Game Over" regardless of win condition
+            g2.drawString("Game Over", 270, 280);
             
-            g2.setFont(new Font("Arial", Font.PLAIN, 24));
-            g2.drawString("Collectibles: " + collectedCount + " / " + WIN_COLLECTIBLES, 280, 330);
+            // Don't display the number of coins collected
         }
     }
     
