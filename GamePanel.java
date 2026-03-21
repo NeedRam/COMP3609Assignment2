@@ -23,6 +23,7 @@ public class GamePanel extends JPanel {
     
     // Player and sprites
     private PlayerSprite player;
+    private ArrowSprite arrowSprite;
     private ArrayList<AnimatedSprite> animatedSprites;
     private ArrayList<SolidObject> solidObjects;
     private ArrayList<Collectible> collectibles;
@@ -58,7 +59,7 @@ public class GamePanel extends JPanel {
     // Collectibles tracking
     private int collectedCount;
     private int totalCollectibles;
-    private static final int WIN_COLLECTIBLES = 10;
+    private static final int WIN_COLLECTIBLES = 11;
     
     // FPS tracking
     private long lastFrameTime;
@@ -66,6 +67,12 @@ public class GamePanel extends JPanel {
     
     // Sound
     private SoundManager soundManager;
+    
+    // Golden tint effect for coin pickup
+    private boolean goldenTintActive;
+    private long goldenTintTimer;
+    private static final long GOLDEN_TINT_DURATION = 1000; // 1 second in milliseconds
+    private static final int GOLDEN_TINT_COLOR = 0x80FFD700; // Semi-transparent golden (ARGB)
     
     // Info panel reference
     private InfoPanel infoPanel;
@@ -124,6 +131,10 @@ public class GamePanel extends JPanel {
         
         lastFrameTime = System.currentTimeMillis();
         fps = 0;
+        
+        // Initialize golden tint effect
+        goldenTintActive = false;
+        goldenTintTimer = 0;
     }
     
     /**
@@ -143,8 +154,8 @@ public class GamePanel extends JPanel {
         // Scale tree images to max height 400px
         for (int i = 0; i < originalTreeImages.length; i++) {
             if (originalTreeImages[i] != null) {
-                int newHeight = 300;
-                int newWidth = (int) (originalTreeImages[i].getWidth() * (300.0 / originalTreeImages[i].getHeight()));
+                int newHeight = 150;
+                int newWidth = (int) (originalTreeImages[i].getWidth() * (150.0 / originalTreeImages[i].getHeight()));
                 treeImages[i] = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D g2 = treeImages[i].createGraphics();
                 g2.drawImage(originalTreeImages[i], 0, 0, newWidth, newHeight, null);
@@ -168,8 +179,8 @@ public class GamePanel extends JPanel {
         // Scale rock images to max width 200px
         for (int i = 0; i < originalRockImages.length; i++) {
             if (originalRockImages[i] != null) {
-                int newWidth = 100;
-                int newHeight = (int) (originalRockImages[i].getHeight() * (100.0 / originalRockImages[i].getWidth()));
+                int newWidth = 50;
+                int newHeight = (int) (originalRockImages[i].getHeight() * (50.0 / originalRockImages[i].getWidth()));
                 rockImages[i] = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
                 Graphics2D g = rockImages[i].createGraphics();
                 g.drawImage(originalRockImages[i], 0, 0, newWidth, newHeight, null);
@@ -203,6 +214,9 @@ public class GamePanel extends JPanel {
         
         // Create animated sprites
         createAnimatedSprites();
+        
+        // Create arrow sprite
+        arrowSprite = new ArrowSprite();
         
         // Reset camera
         cameraX = 0;
@@ -299,11 +313,118 @@ public class GamePanel extends JPanel {
     
     private void createCollectibles() {
         collectibles.clear();
-        // Add collectibles scattered around the world
-        int[] positions = {200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000};
-        for (int i = 0; i < positions.length; i++) {
-            collectibles.add(new Collectible(positions[i], 200 + (i * 50), 30, 30));
+        
+        // Load coin strip image for animated collectibles
+        BufferedImage coinStrip = ImageManager.loadBufferedImage("coinStrip.png");
+        
+        // Collectible dimensions
+        final int COLLECTIBLE_SIZE = 40;
+        final int NUM_COLLECTIBLES = WIN_COLLECTIBLES; // 11
+        final int MIN_DISTANCE_FROM_SOLID = 200; // Minimum distance from solid objects
+        final int EDGE_MARGIN = 50; // Keep collectibles away from world edges
+        final int MAX_ATTEMPTS = 1000; // Max attempts per collectible to find valid position
+        
+        // Generate random positions for collectibles
+        int[][] positions = new int[NUM_COLLECTIBLES][2];
+        
+        for (int i = 0; i < NUM_COLLECTIBLES; i++) {
+            boolean validPosition = false;
+            int attempts = 0;
+            int x = 0, y = 0;
+            
+            while (!validPosition && attempts < MAX_ATTEMPTS) {
+                attempts++;
+                
+                // Generate random position within world bounds (with margin)
+                x = EDGE_MARGIN + random.nextInt(WORLD_WIDTH - 2 * EDGE_MARGIN - COLLECTIBLE_SIZE);
+                y = EDGE_MARGIN + random.nextInt(WORLD_HEIGHT - 2 * EDGE_MARGIN - COLLECTIBLE_SIZE);
+                
+                // Check if position is at least 200px away from all solid objects
+                validPosition = true;
+                
+                for (SolidObject solid : solidObjects) {
+                    Rectangle2D.Double solidBounds = solid.getBoundingRectangle();
+                    double distance = getDistanceFromRect(x, y, solidBounds);
+                    
+                    if (distance < MIN_DISTANCE_FROM_SOLID) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                
+                // Also check distance from other already-placed collectibles
+                if (validPosition) {
+                    for (int j = 0; j < i; j++) {
+                        double dist = Math.sqrt(
+                            Math.pow(x - positions[j][0], 2) + 
+                            Math.pow(y - positions[j][1], 2)
+                        );
+                        if (dist < MIN_DISTANCE_FROM_SOLID) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (validPosition) {
+                positions[i][0] = x;
+                positions[i][1] = y;
+            } else {
+                // Fallback: place at random position even if not ideal
+                positions[i][0] = EDGE_MARGIN + random.nextInt(WORLD_WIDTH - 2 * EDGE_MARGIN);
+                positions[i][1] = EDGE_MARGIN + random.nextInt(WORLD_HEIGHT - 2 * EDGE_MARGIN);
+                System.out.println("Warning: Could not find valid position for collectible " + i + " after " + MAX_ATTEMPTS + " attempts");
+            }
         }
+        
+        if (coinStrip != null) {
+            System.out.println("Coin strip loaded: " + coinStrip.getWidth() + "x" + coinStrip.getHeight());
+            
+            // Create StripAnimation to extract 18 frames (each 170px wide)
+            StripAnimation stripAnim = new StripAnimation(170, coinStrip.getHeight(), 18);
+            stripAnim.setAnimationSpeed(60); // ~60ms per frame for smooth coin animation
+            
+            // Extract frames from the coin strip (row 0)
+            BufferedImage[] coinFrames = stripAnim.extractFramesFromRow(coinStrip, 0);
+            System.out.println("Extracted " + coinFrames.length + " coin frames");
+            
+            // Create animation with the extracted frames
+            Animation coinAnimation = stripAnim.createAnimationFromFrames(coinFrames, 60, false);
+            
+            // Create animated collectibles at the randomly generated positions
+            for (int i = 0; i < positions.length; i++) {
+                // Create AnimatedSprite for this collectible
+                AnimatedSprite coinSprite = new AnimatedSprite(this, positions[i][0], positions[i][1], COLLECTIBLE_SIZE, COLLECTIBLE_SIZE);
+                coinSprite.setAnimation(coinAnimation);
+                
+                // Create collectible with the animated sprite
+                collectibles.add(new Collectible(positions[i][0], positions[i][1], COLLECTIBLE_SIZE, COLLECTIBLE_SIZE, coinSprite));
+            }
+            
+            System.out.println("Created " + collectibles.size() + " animated coin collectibles at random positions");
+        } else {
+            // Fallback to static collectibles if coin strip fails to load
+            System.out.println("Failed to load coinStrip.png, using static collectibles");
+            for (int i = 0; i < positions.length; i++) {
+                collectibles.add(new Collectible(positions[i][0], positions[i][1], 30, 30));
+            }
+        }
+    }
+    
+    /**
+     * Calculates the minimum distance from a point (x, y) to a rectangle.
+     * Returns 0 if the point is inside the rectangle.
+     */
+    private double getDistanceFromRect(int x, int y, Rectangle2D.Double rect) {
+        // Find the closest point on the rectangle to the given point
+        double closestX = Math.max(rect.getMinX(), Math.min(x, rect.getMaxX()));
+        double closestY = Math.max(rect.getMinY(), Math.min(y, rect.getMaxY()));
+        
+        // Calculate distance from point to closest point on rectangle
+        double distance = Math.sqrt(Math.pow(x - closestX, 2) + Math.pow(y - closestY, 2));
+        
+        return distance;
     }
     
     private void createAnimatedSprites() {
@@ -378,6 +499,22 @@ public class GamePanel extends JPanel {
     public void updatePlayer() {
         if (player == null || !gameRunning || gamePaused) return;
         
+        // Calculate delta time for speed boost timer
+        long currentTime = System.currentTimeMillis();
+        long deltaTime = currentTime - lastFrameTime;
+        
+        // Update speed boost timer
+        player.updateSpeedBoost(deltaTime);
+        
+        // Update golden tint timer
+        if (goldenTintActive) {
+            goldenTintTimer -= deltaTime;
+            if (goldenTintTimer <= 0) {
+                goldenTintActive = false;
+                goldenTintTimer = 0;
+            }
+        }
+        
         // Store old world position for collision reversion
         int oldWorldX = player.getWorldX();
         int oldWorldY = player.getWorldY();
@@ -440,9 +577,15 @@ public class GamePanel extends JPanel {
             sprite.update();
         }
         
-        // Update collectibles screen positions
+        // Update collectibles screen positions and animations
         for (Collectible collectible : collectibles) {
             collectible.updateScreenPosition(cameraX, cameraY);
+            collectible.update();
+        }
+        
+        // Update arrow sprite
+        if (arrowSprite != null) {
+            arrowSprite.update(player.getScreenX(), player.getScreenY(), collectibles);
         }
         
         // Play movement sound
@@ -492,7 +635,14 @@ public class GamePanel extends JPanel {
                 playerBounds.intersects(collectible.getBoundingRectangle())) {
                 collectible.collect();
                 collectedCount++;
-                soundManager.playClip("collect", false);
+                soundManager.playClip("coinPickup", false);
+                
+                // Activate speed boost (3x speed for 3 seconds)
+                player.activateSpeedBoost();
+                
+                // Activate golden tint effect for 1 second
+                goldenTintActive = true;
+                goldenTintTimer = GOLDEN_TINT_DURATION;
                 
                 // Check win condition
                 if (collectedCount >= WIN_COLLECTIBLES) {
@@ -594,9 +744,25 @@ public class GamePanel extends JPanel {
             player.draw(g2);
         }
         
+        // Draw arrow sprite (on top of player)
+        if (arrowSprite != null) {
+            arrowSprite.draw(g2);
+        }
+        
         // Draw image effects
         for (ImageFX effect : effects) {
             effect.draw(g2);
+        }
+        
+        // Draw golden tint overlay if active
+        if (goldenTintActive) {
+            g2.setColor(new Color(
+                (GOLDEN_TINT_COLOR >> 16) & 0xFF,
+                (GOLDEN_TINT_COLOR >> 8) & 0xFF,
+                GOLDEN_TINT_COLOR & 0xFF,
+                (GOLDEN_TINT_COLOR >> 24) & 0xFF
+            ));
+            g2.fillRect(0, 0, getWidth(), getHeight());
         }
         
         // Draw game over screen

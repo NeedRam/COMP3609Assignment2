@@ -1,10 +1,10 @@
 import java.awt.Graphics2D;
-import java.awt.geom.Rectangle2D;
-import javax.swing.JPanel;
 import java.awt.Image;
+import java.awt.geom.Rectangle2D;
 
 /**
  * Collectible game entities that can be picked up by the player.
+ * Supports both static images and animated sprites.
  */
 public class Collectible {
     
@@ -17,6 +17,13 @@ public class Collectible {
     private int screenX;
     private int screenY;
     
+    // Animated sprite for coin animation
+    private AnimatedSprite animatedSprite;
+    
+    // Flag to determine if this collectible uses animation
+    private boolean isAnimated;
+    
+    // Default constructor for static collectibles
     public Collectible(int xPos, int yPos, int w, int h) {
         x = xPos;
         y = yPos;
@@ -24,11 +31,36 @@ public class Collectible {
         height = h;
         collected = false;
         image = ImageManager.loadImage("collectible.png");
+        isAnimated = false;
+    }
+    
+    // Constructor for animated collectibles
+    public Collectible(int xPos, int yPos, int w, int h, AnimatedSprite animSprite) {
+        x = xPos;
+        y = yPos;
+        width = w;
+        height = h;
+        collected = false;
+        image = null;
+        animatedSprite = animSprite;
+        isAnimated = true;
     }
     
     public void updateScreenPosition(int cameraX, int cameraY) {
         screenX = x - cameraX;
         screenY = y - cameraY;
+        
+        // Update animated sprite position if present
+        if (animatedSprite != null) {
+            animatedSprite.updateScreenPosition(cameraX, cameraY);
+        }
+    }
+    
+    // Update animation for animated collectibles
+    public void update() {
+        if (isAnimated && animatedSprite != null) {
+            animatedSprite.update();
+        }
     }
     
     public void draw(Graphics2D g2) {
@@ -37,7 +69,12 @@ public class Collectible {
         // Only draw if visible on screen
         if (screenX + width > 0 && screenX < 800 &&
             screenY + height > 0 && screenY < 600) {
-            if (image != null) {
+            
+            if (isAnimated && animatedSprite != null) {
+                // Draw animated sprite
+                animatedSprite.draw(g2);
+            } else if (image != null) {
+                // Draw static image
                 g2.drawImage(image, screenX, screenY, width, height, null);
             } else {
                 // Draw placeholder
@@ -77,5 +114,9 @@ public class Collectible {
     
     public int getScreenY() {
         return screenY;
+    }
+    
+    public boolean isAnimated() {
+        return isAnimated;
     }
 }

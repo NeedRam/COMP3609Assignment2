@@ -80,4 +80,58 @@ public class DisappearFX implements ImageFX {
     public void setActive(boolean a) {
         active = a;
     }
+    
+    /**
+     * Set the position for drawing.
+     * 
+     * @param xPos New X position
+     * @param yPos New Y position
+     */
+    public void setPosition(int xPos, int yPos) {
+        x = xPos;
+        y = yPos;
+    }
+    
+    /**
+     * Get the current image with alpha applied.
+     * 
+     * @return The BufferedImage with alpha applied
+     */
+    public BufferedImage getCurrentImage() {
+        return currentImage;
+    }
+    
+    /**
+     * Set a specific alpha value directly without auto-decrementing.
+     * This applies the alpha to the image immediately.
+     * 
+     * @param alphaValue The alpha value (0-255)
+     */
+    public void setAlpha(int alphaValue) {
+        alpha = Math.max(0, Math.min(255, alphaValue));
+        
+        // Apply alpha to image
+        if (currentImage != null && originalImage != null) {
+            int imWidth = originalImage.getWidth();
+            int imHeight = originalImage.getHeight();
+            
+            int[] pixels = new int[imWidth * imHeight];
+            originalImage.getRGB(0, 0, imWidth, imHeight, pixels, 0, imWidth);
+            
+            for (int i = 0; i < pixels.length; i++) {
+                int a = (pixels[i] >> 24);
+                int red = (pixels[i] >> 16) & 255;
+                int green = (pixels[i] >> 8) & 255;
+                int blue = pixels[i] & 255;
+                
+                // Only modify if pixel is not fully transparent
+                if (a > 0) {
+                    int newValue = blue | (green << 8) | (red << 16) | (alpha << 24);
+                    pixels[i] = newValue;
+                }
+            }
+            
+            currentImage.setRGB(0, 0, imWidth, imHeight, pixels, 0, imWidth);
+        }
+    }
 }

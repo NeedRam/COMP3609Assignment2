@@ -17,6 +17,7 @@ public class SoundManager {
         
         // Load sound clips
         loadClip("footstep", "runningOnGrass.wav");
+        loadClip("coinPickup", "coinPickp.wav");
     }
     
     public static SoundManager getInstance() {

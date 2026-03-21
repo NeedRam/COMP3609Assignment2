@@ -16,6 +16,11 @@ public class PlayerSprite extends Sprite {
     private int worldY;
     private int dx = 25;
     private int dy = 25;
+    private int baseSpeed = 25; // Store the normal speed
+    private boolean speedBoostActive = false;
+    private long speedBoostTimer = 0; // Time remaining in milliseconds
+    private static final long SPEED_BOOST_DURATION = 1000; // 1 second
+    private static final int SPEED_BOOST_MULTIPLIER = 3; // 3x speed
     private int screenX;
     private int screenY;
     
@@ -384,6 +389,47 @@ public class PlayerSprite extends Sprite {
     public void setSpeed(int s) {
         dx = s;
         dy = s;
+    }
+    
+    /**
+     * Activates the speed boost (3x speed for 3 seconds).
+     * Multiple activations reset the timer.
+     */
+    public void activateSpeedBoost() {
+        baseSpeed = 25; // Ensure baseSpeed is set to normal value
+        dx = baseSpeed * SPEED_BOOST_MULTIPLIER;
+        dy = baseSpeed * SPEED_BOOST_MULTIPLIER;
+        speedBoostActive = true;
+        speedBoostTimer = SPEED_BOOST_DURATION;
+    }
+    
+    /**
+     * Updates the speed boost timer. Call this in the game loop.
+     * @param deltaTime time elapsed since last update in milliseconds
+     */
+    public void updateSpeedBoost(long deltaTime) {
+        if (speedBoostActive) {
+            speedBoostTimer -= deltaTime;
+            if (speedBoostTimer <= 0) {
+                // Speed boost expired, reset to base speed
+                speedBoostTimer = 0;
+                speedBoostActive = false;
+                dx = baseSpeed;
+                dy = baseSpeed;
+            }
+        }
+    }
+    
+    public boolean isSpeedBoostActive() {
+        return speedBoostActive;
+    }
+    
+    public long getSpeedBoostTimer() {
+        return speedBoostTimer;
+    }
+    
+    public int getBaseSpeed() {
+        return baseSpeed;
     }
     
     public void setWorldX(int x) {
