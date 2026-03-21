@@ -358,10 +358,6 @@ secrets.properties
 # Planning and documentation files
 plans/
 
-# Assignment guidelines (not needed in repo)
-"COMP 3609 Assignment Guidelines.md"
-"COMP 3609 Assignment Guidelines.pdf"
-
 # The rebuild batch file is tracked (needed for building)
 # If you want to exclude it:
 # "rebuild and run.bat"
