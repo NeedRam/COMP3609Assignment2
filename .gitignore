@@ -165,23 +165,14 @@ Desktop.ini
 # -----------------------------------------------------------------------------
 # 5. AUDIO AND IMAGE ASSETS
 # -----------------------------------------------------------------------------
-# GAME ASSETS - Reasoning:
+# GAME ASSETS - Excluded from version control:
 # 
-# For this assignment, we INCLUDE (track) image and audio assets because:
+# These binary files are excluded because:
+# 1. Large binary files bloat the repository
+# 2. Git doesn't handle binary files efficiently
+# 3. They can be regenerated or re-added separately
+# 4. Use Git LFS for large assets if needed
 # 
-# 1. They are ESSENTIAL for the game to run - without them, the game won't work
-# 2. They are project-specific assets created for this assignment
-# 3. For educational submissions, all components should be preserved
-# 4. They are not automatically generated - they must be manually created
-# 
-# However, if you were working on a production game, you might consider:
-# - Using Git LFS (Large File Storage) for large binary files
-# - Using asset pack management systems
-# - Storing assets in a separate repository
-# 
-# The assets below are STILL TRACKED because they are necessary for the game.
-
-# Track ALL image assets - they are essential game content
 # Images: PNG, JPG, JPEG, GIF, BMP, TIFF, WEBP
 *.png
 *.jpg
@@ -194,7 +185,6 @@ Desktop.ini
 *.svg
 *.ico
 
-# Track ALL audio assets - they are essential game content
 # Audio: WAV, MP3, OGG, FLAC, AIFF, MIDI
 *.wav
 *.mp3
@@ -204,7 +194,7 @@ Desktop.ini
 *.midi
 *.mid
 
-# Track video assets if any
+# Video: MP4, AVI, MOV, WMV, MKV
 *.mp4
 *.avi
 *.mov
@@ -364,6 +354,13 @@ secrets.properties
 # 12. PROJECT SPECIFIC EXCLUSIONS
 # -----------------------------------------------------------------------------
 # Specific exclusions for this COMP 3609 Assignment 2 project
+
+# Planning and documentation files
+plans/
+
+# Assignment guidelines (not needed in repo)
+"COMP 3609 Assignment Guidelines.md"
+"COMP 3609 Assignment Guidelines.pdf"
 
 # The rebuild batch file is tracked (needed for building)
 # If you want to exclude it:
