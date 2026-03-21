@@ -1,5 +1,5 @@
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 /**
  * Information display panel showing FPS, player coordinates,
@@ -27,12 +27,24 @@ public class InfoPanel extends JPanel {
         positionLabel = new JLabel("Position:");
         effectsLabel = new JLabel("Effect:");
         collectiblesLabel = new JLabel("Collectibles:");
+
+        fpsLabel.setForeground(Color.WHITE);
+        positionLabel.setForeground(Color.WHITE);
+        effectsLabel.setForeground(Color.WHITE);
+        collectiblesLabel.setForeground(Color.WHITE);
+
         
         // Create text fields
         fpsTF = new JTextField(5);
         positionTF = new JTextField(10);
         effectsTF = new JTextField(10);
         collectiblesTF = new JTextField(10);
+
+        fpsTF.setForeground(Color.BLACK);
+        positionTF.setForeground(Color.BLACK);
+        effectsTF.setForeground(Color.BLACK);
+        collectiblesTF.setForeground(Color.BLACK);
+
         
         // Make text fields non-editable
         fpsTF.setEditable(false);
