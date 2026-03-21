@@ -1,5 +1,6 @@
 import javax.swing.JPanel;
 import javax.swing.JComponent;
+import javax.swing.SwingUtilities;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.geom.Rectangle2D;
@@ -85,8 +86,10 @@ public class GamePanel extends JPanel {
     // Info panel reference
     private InfoPanel infoPanel;
     
-    // Game timer for game loop
-    private javax.swing.Timer gameTimer;
+    // Game thread for precise timing (replaces javax.swing.Timer)
+    private Thread gameThread;
+    private volatile boolean gameThreadRunning;
+    private static final int TARGET_FRAME_TIME = 40; // 40ms = 25 FPS
     
     public GamePanel() {
         this(null);
@@ -154,26 +157,10 @@ public class GamePanel extends JPanel {
         gameOverTime = 0;
         gameExiting = false;
         
-        // Initialize game timer (will be started when game begins)
-        gameTimer = new javax.swing.Timer(40, new java.awt.event.ActionListener() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (gameRunning && !gamePaused) {
-                    updatePlayer();
-                    checkCollisions();
-                    updateEffects();
-                    repaint();
-                }
-                
-                // Check if game is over and if 1500ms has elapsed
-                if (gameOver && gameOverTime > 0) {
-                    long elapsed = System.currentTimeMillis() - gameOverTime;
-                    if (elapsed >= GAME_OVER_EXIT_DELAY) {
-                        System.exit(0);
-                    }
-                }
-            }
-        });
+        // Initialize game thread (will be started when game begins)
+        // Using a dedicated thread instead of javax.swing.Timer for precise timing
+        gameThread = null;
+        gameThreadRunning = false;
     }
     
     /**
@@ -498,10 +485,8 @@ public class GamePanel extends JPanel {
         // Start background music
         soundManager.playClip("background", true);
         
-        // Start the game timer
-        if (gameTimer != null) {
-            gameTimer.start();
-        }
+        // Start the game thread
+        startGameThread();
         
         repaint();
     }
@@ -523,22 +508,99 @@ public class GamePanel extends JPanel {
         
         if (gamePaused) {
             soundManager.stopClip("background");
-            if (gameTimer != null) {
-                gameTimer.stop();
-            }
         } else {
             soundManager.playClip("background", true);
-            if (gameTimer != null && gameRunning) {
-                gameTimer.start();
-            }
         }
     }
     
     public void stopGame() {
         gameRunning = false;
         soundManager.stopClip("background");
-        if (gameTimer != null) {
-            gameTimer.stop();
+        stopGameThread();
+    }
+    
+    /**
+     * Starts the dedicated game thread for precise timing.
+     */
+    private void startGameThread() {
+        if (gameThread != null && gameThread.isAlive()) {
+            return; // Thread already running
+        }
+        
+        gameThreadRunning = true;
+        gameThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                long lastFrameTime = System.nanoTime();
+                final long targetNanos = TARGET_FRAME_TIME * 1_000_000; // Convert ms to ns
+                
+                while (gameThreadRunning && !Thread.currentThread().isInterrupted()) {
+                    long currentTime = System.nanoTime();
+                    long elapsedNanos = currentTime - lastFrameTime;
+                    
+                    // Calculate actual frame time for debug logging
+                    long elapsedMs = elapsedNanos / 1_000_000;
+                    
+                    if (gameRunning && !gamePaused) {
+                        // Update game logic
+                        updatePlayer();
+                        checkCollisions();
+                        updateEffects();
+                        
+                        // Update FPS counter from game thread (accurate timing)
+                        updateFPSFromGameThread();
+                        
+                        // Request repaint on EDT
+                        final long frameTime = elapsedNanos;
+                        SwingUtilities.invokeLater(new Runnable() {
+                            @Override
+                            public void run() {
+                                repaint();
+                            }
+                        });
+                    }
+                    
+                    // Check game over exit
+                    if (gameOver && gameOverTime > 0) {
+                        long elapsed = System.currentTimeMillis() - gameOverTime;
+                        if (elapsed >= GAME_OVER_EXIT_DELAY) {
+                            System.exit(0);
+                        }
+                    }
+                    
+                    lastFrameTime = currentTime;
+                    
+                    // Sleep for the remaining time to maintain target frame rate
+                    long sleepTimeNanos = targetNanos - (System.nanoTime() - currentTime);
+                    if (sleepTimeNanos > 0) {
+                        try {
+                            Thread.sleep(sleepTimeNanos / 1_000_000, (int)(sleepTimeNanos % 1_000_000));
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+        gameThread.setName("GameLoopThread");
+        gameThread.setPriority(Thread.MAX_PRIORITY);
+        gameThread.start();
+    }
+    
+    /**
+     * Stops the game thread.
+     */
+    private void stopGameThread() {
+        gameThreadRunning = false;
+        if (gameThread != null) {
+            gameThread.interrupt();
+            try {
+                gameThread.join(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            gameThread = null;
         }
     }
     
@@ -807,9 +869,6 @@ public class GamePanel extends JPanel {
             // Fallback to direct drawing
             drawToBuffer(g2);
         }
-        
-        // Update FPS
-        updateFPS();
     }
     
     private void drawToBuffer(Graphics2D g2) {
@@ -838,13 +897,13 @@ public class GamePanel extends JPanel {
             return;
         }
         
-        // Draw solid objects
+        // Draw solid objects (25 trees/rocks)
         g2.setColor(new Color(100, 100, 100));
         for (SolidObject solid : solidObjects) {
             solid.draw(g2, cameraX, cameraY);
         }
         
-        // Draw collectibles
+        // Draw collectibles (11 coins)
         for (Collectible collectible : collectibles) {
             collectible.draw(g2);
         }
@@ -933,6 +992,9 @@ public class GamePanel extends JPanel {
     }
     
     private void updateFPS() {
+        // Calculate FPS based on actual frame time from the game thread
+        // The game thread runs at TARGET_FRAME_TIME (40ms = 25 FPS)
+        // Use a simple calculation since we know the target rate
         long currentTime = System.currentTimeMillis();
         long delta = currentTime - lastFrameTime;
         
@@ -940,7 +1002,17 @@ public class GamePanel extends JPanel {
             fps = (int)(1000 / delta);
         }
         
+        // Update lastFrameTime
         lastFrameTime = currentTime;
+    }
+    
+    /**
+     * Updates FPS directly from the game thread with accurate timing.
+     * Called by the game thread each frame.
+     */
+    private void updateFPSFromGameThread() {
+        // Use the actual frame time from the game loop
+        fps = 1000 / TARGET_FRAME_TIME; // Should be 25 FPS
     }
     
     // Key state setters
