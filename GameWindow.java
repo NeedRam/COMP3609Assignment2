@@ -24,10 +24,6 @@ public class GameWindow extends JFrame
     // Managers
     private SoundManager soundManager;
     
-    // Timers
-    private Timer gameTimer;
-    private Timer movementTimer;
-    
     public GameWindow() {
         setTitle("Visual Playground");
         setSize(800, 700);
@@ -64,28 +60,6 @@ public class GameWindow extends JFrame
         setResizable(true);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
-        
-        // Create game timer for updates
-        gameTimer = new Timer(50, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (gamePanel.isGameRunning() && !gamePanel.isGamePaused()) {
-                    gamePanel.checkCollisions();
-                    gamePanel.updateEffects();
-                    updateInfoPanel();
-                }
-            }
-        });
-        
-        // Movement timer for smooth player movement
-        movementTimer = new Timer(30, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (gamePanel.isGameRunning() && !gamePanel.isGamePaused()) {
-                    gamePanel.updatePlayer();
-                }
-            }
-        });
     }
     
     private void createButtonPanel() {
@@ -125,9 +99,6 @@ public class GameWindow extends JFrame
             } else if (!gamePanel.isGameRunning()) {
                 gamePanel.startGame();
             }
-            gameTimer.start();
-            movementTimer.start();
-            gamePanel.drawGameEntities();
             mainPanel.requestFocus();
         }
         
@@ -135,12 +106,8 @@ public class GameWindow extends JFrame
             gamePanel.pauseGame();
             if (gamePanel.isGamePaused()) {
                 pauseB.setText("Resume");
-                gameTimer.stop();
-                movementTimer.stop();
             } else {
                 pauseB.setText("Pause");
-                gameTimer.start();
-                movementTimer.start();
             }
             mainPanel.requestFocus();
         }

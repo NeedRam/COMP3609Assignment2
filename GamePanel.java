@@ -62,7 +62,7 @@ public class GamePanel extends JPanel {
     // Collectibles tracking
     private int collectedCount;
     private int totalCollectibles;
-    private static final int WIN_COLLECTIBLES = 11; // Number of collectibles required to win
+    private static final int WIN_COLLECTIBLES = 3; // Number of collectibles required to win
     
     // FPS tracking
     private long lastFrameTime;
@@ -79,11 +79,14 @@ public class GamePanel extends JPanel {
     
     // Game over exit timer
     private long gameOverTime;
-    private static final long GAME_OVER_EXIT_DELAY = 3000; // 3 seconds in milliseconds
+    private static final long GAME_OVER_EXIT_DELAY = 1500; // 1500ms in milliseconds
     private boolean gameExiting;
     
     // Info panel reference
     private InfoPanel infoPanel;
+    
+    // Game timer for game loop
+    private javax.swing.Timer gameTimer;
     
     public GamePanel() {
         this(null);
@@ -150,6 +153,27 @@ public class GamePanel extends JPanel {
         // Initialize game over exit timer
         gameOverTime = 0;
         gameExiting = false;
+        
+        // Initialize game timer (will be started when game begins)
+        gameTimer = new javax.swing.Timer(40, new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (gameRunning && !gamePaused) {
+                    updatePlayer();
+                    checkCollisions();
+                    updateEffects();
+                    repaint();
+                }
+                
+                // Check if game is over and if 1500ms has elapsed
+                if (gameOver && gameOverTime > 0) {
+                    long elapsed = System.currentTimeMillis() - gameOverTime;
+                    if (elapsed >= GAME_OVER_EXIT_DELAY) {
+                        System.exit(0);
+                    }
+                }
+            }
+        });
     }
     
     /**
@@ -474,6 +498,11 @@ public class GamePanel extends JPanel {
         // Start background music
         soundManager.playClip("background", true);
         
+        // Start the game timer
+        if (gameTimer != null) {
+            gameTimer.start();
+        }
+        
         repaint();
     }
     
@@ -494,20 +523,31 @@ public class GamePanel extends JPanel {
         
         if (gamePaused) {
             soundManager.stopClip("background");
+            if (gameTimer != null) {
+                gameTimer.stop();
+            }
         } else {
             soundManager.playClip("background", true);
+            if (gameTimer != null && gameRunning) {
+                gameTimer.start();
+            }
         }
     }
     
     public void stopGame() {
         gameRunning = false;
         soundManager.stopClip("background");
+        if (gameTimer != null) {
+            gameTimer.stop();
+        }
     }
     
     public void triggerGameOver(boolean won) {
         gameOver = true;
         gameRunning = false;
         soundManager.stopAll();
+        
+        // Do NOT stop the game timer - let it keep running to check elapsed time
         
         // Set game over timestamp for exit timer
         gameOverTime = System.currentTimeMillis();
@@ -541,16 +581,6 @@ public class GamePanel extends JPanel {
         }
         
         repaint();
-        
-        // Schedule game exit after 3 seconds using Swing Timer
-        javax.swing.Timer exitTimer = new javax.swing.Timer(1500, new java.awt.event.ActionListener() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                System.exit(0);
-            }
-        });
-        exitTimer.setRepeats(false);
-        exitTimer.start();
     }
     
     public void updatePlayer() {
@@ -717,6 +747,16 @@ public class GamePanel extends JPanel {
         // Update screen grayscale effect
         if (screenGrayScaleFX != null) {
             screenGrayScaleFX.update();
+        }
+        
+        // Update info panel
+        if (infoPanel != null) {
+            if (player != null) {
+                infoPanel.updatePlayerPosition(player.getWorldX(), player.getWorldY());
+            }
+            infoPanel.updateFPS(fps);
+            infoPanel.updateCollectibles(collectedCount, totalCollectibles);
+            infoPanel.updateActiveEffects(activeEffectName);
         }
     }
     
