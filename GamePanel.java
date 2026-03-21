@@ -4,6 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * Main game panel with double buffering, game loop, 
@@ -38,6 +39,13 @@ public class GamePanel extends JPanel {
     
     // Background
     private BufferedImage backgroundImage;
+    
+    // Tree and rock images
+    private BufferedImage[] treeImages;
+    private BufferedImage[] rockImages;
+    
+    // Random number generator
+    private Random random;
     
     // Double buffering
     private BufferedImage doubleBufferImage;
@@ -96,6 +104,12 @@ public class GamePanel extends JPanel {
         
         soundManager = SoundManager.getInstance();
         
+        // Initialize random generator
+        random = new Random();
+        
+        // Load tree and rock images
+        loadImages();
+        
         // Initialize double buffering
         doubleBufferImage = new BufferedImage(800, 600, BufferedImage.TYPE_INT_ARGB);
         doubleBufferG2 = doubleBufferImage.createGraphics();
@@ -110,6 +124,69 @@ public class GamePanel extends JPanel {
         
         lastFrameTime = System.currentTimeMillis();
         fps = 0;
+    }
+    
+    /**
+     * Loads tree and rock images from the res/images folders.
+     */
+    private void loadImages() {
+        // Load tree images and scale them to max height 400px
+        treeImages = new BufferedImage[6];
+        BufferedImage[] originalTreeImages = new BufferedImage[6];
+        originalTreeImages[0] = ImageManager.loadBufferedImage("trees/Tree1.png");
+        originalTreeImages[1] = ImageManager.loadBufferedImage("trees/Tree2.png");
+        originalTreeImages[2] = ImageManager.loadBufferedImage("trees/Tree3.png");
+        originalTreeImages[3] = ImageManager.loadBufferedImage("trees/Tree4.png");
+        originalTreeImages[4] = ImageManager.loadBufferedImage("trees/Tree5.png");
+        originalTreeImages[5] = ImageManager.loadBufferedImage("trees/Tree6.png");
+        
+        // Scale tree images to max height 400px
+        for (int i = 0; i < originalTreeImages.length; i++) {
+            if (originalTreeImages[i] != null) {
+                int newHeight = 300;
+                int newWidth = (int) (originalTreeImages[i].getWidth() * (300.0 / originalTreeImages[i].getHeight()));
+                treeImages[i] = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g2 = treeImages[i].createGraphics();
+                g2.drawImage(originalTreeImages[i], 0, 0, newWidth, newHeight, null);
+                g2.dispose();
+            }
+        }
+        
+        // Load rock images and scale them to max width 200px
+        rockImages = new BufferedImage[9];
+        BufferedImage[] originalRockImages = new BufferedImage[9];
+        originalRockImages[0] = ImageManager.loadBufferedImage("rocks/Rock1.png");
+        originalRockImages[1] = ImageManager.loadBufferedImage("rocks/Rock2.png");
+        originalRockImages[2] = ImageManager.loadBufferedImage("rocks/Rock3.png");
+        originalRockImages[3] = ImageManager.loadBufferedImage("rocks/Rock4.png");
+        originalRockImages[4] = ImageManager.loadBufferedImage("rocks/Rock5.png");
+        originalRockImages[5] = ImageManager.loadBufferedImage("rocks/Rock6.png");
+        originalRockImages[6] = ImageManager.loadBufferedImage("rocks/Rock7.png");
+        originalRockImages[7] = ImageManager.loadBufferedImage("rocks/Rock8.png");
+        originalRockImages[8] = ImageManager.loadBufferedImage("rocks/Rock9.png");
+        
+        // Scale rock images to max width 200px
+        for (int i = 0; i < originalRockImages.length; i++) {
+            if (originalRockImages[i] != null) {
+                int newWidth = 100;
+                int newHeight = (int) (originalRockImages[i].getHeight() * (100.0 / originalRockImages[i].getWidth()));
+                rockImages[i] = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g = rockImages[i].createGraphics();
+                g.drawImage(originalRockImages[i], 0, 0, newWidth, newHeight, null);
+                g.dispose();
+            }
+        }
+        
+        // Debug output
+        int treesLoaded = 0;
+        int rocksLoaded = 0;
+        for (BufferedImage img : treeImages) {
+            if (img != null) treesLoaded++;
+        }
+        for (BufferedImage img : rockImages) {
+            if (img != null) rocksLoaded++;
+        }
+        System.out.println("Loaded " + treesLoaded + " tree images and " + rocksLoaded + " rock images");
     }
     
     public void createGameEntities() {
@@ -138,12 +215,86 @@ public class GamePanel extends JPanel {
     
     private void createSolidObjects() {
         solidObjects.clear();
-        // Add some solid objects
-        solidObjects.add(new SolidObject(300, 200, 100, 50));
-        solidObjects.add(new SolidObject(600, 400, 150, 30));
-        solidObjects.add(new SolidObject(900, 150, 50, 200));
-        solidObjects.add(new SolidObject(1200, 300, 100, 100));
-        solidObjects.add(new SolidObject(400, 600, 200, 40));
+        
+        // Player start position (to avoid placing objects on top of player)
+        int playerStartX = WORLD_WIDTH / 2 - 25;  // 1225
+        int playerStartY = WORLD_HEIGHT / 2 - 25; // 1225
+        int safeZoneRadius = 250; // Minimum distance from player start (increased from 150)
+        
+        // Number of objects to generate (exactly 25)
+        int numObjects = 25;
+        
+        // Maximum attempts per object to prevent infinite loop
+        final int MAX_ATTEMPTS_PER_OBJECT = 1000;
+        
+        // Generate random tree and rock positions
+        for (int i = 0; i < numObjects; i++) {
+            int attempts = 0;
+            boolean objectPlaced = false;
+            
+            while (attempts < MAX_ATTEMPTS_PER_OBJECT && !objectPlaced) {
+                attempts++;
+                
+                boolean isTree = random.nextBoolean();
+                BufferedImage selectedImage;
+                
+                if (isTree) {
+                    // Select random tree image
+                    selectedImage = treeImages[random.nextInt(treeImages.length)];
+                } else {
+                    // Select random rock image
+                    selectedImage = rockImages[random.nextInt(rockImages.length)];
+                }
+                
+                if (selectedImage == null) {
+                    // Skip if image failed to load
+                    break;
+                }
+                
+                // Generate random position within world bounds
+                // Keep objects away from world edges (leave 50px margin)
+                int objX = 50 + random.nextInt(WORLD_WIDTH - 100);
+                int objY = 50 + random.nextInt(WORLD_HEIGHT - 100);
+                
+                // Check if position is safe (not too close to player start)
+                double distToPlayer = Math.sqrt(
+                    Math.pow(objX - playerStartX, 2) + 
+                    Math.pow(objY - playerStartY, 2)
+                );
+                
+                if (distToPlayer < safeZoneRadius) {
+                    // Skip this position and try again
+                    continue;
+                }
+                
+                // Check for overlap with existing objects
+                boolean overlaps = false;
+                Rectangle2D.Double newBounds = new Rectangle2D.Double(
+                    objX, objY, 
+                    selectedImage.getWidth(), 
+                    selectedImage.getHeight()
+                );
+                
+                for (SolidObject existing : solidObjects) {
+                    if (newBounds.intersects(existing.getBoundingRectangle())) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+                
+                if (!overlaps) {
+                    solidObjects.add(new SolidObject(objX, objY, selectedImage));
+                    objectPlaced = true;
+                }
+                // Else: try again (loop continues)
+            }
+            
+            if (!objectPlaced) {
+                System.out.println("Warning: Could not place object after " + MAX_ATTEMPTS_PER_OBJECT + " attempts");
+            }
+        }
+        
+        System.out.println("Created " + solidObjects.size() + " random solid objects (trees and rocks)");
     }
     
     private void createCollectibles() {

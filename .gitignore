@@ -270,7 +270,7 @@ site/
 
 # Exclude all example directories
 Examples/
-
+plans/
 # -----------------------------------------------------------------------------
 # 10. ADDITIONAL JAVA SPECIFIC PATTERNS
 # -----------------------------------------------------------------------------
@@ -327,8 +327,7 @@ secrets.properties
 # -----------------------------------------------------------------------------
 # Specific exclusions for this COMP 3609 Assignment 2 project
 
-# Planning and documentation files
-plans/
+
 
 # The rebuild batch file is tracked (needed for building)
 # If you want to exclude it:
