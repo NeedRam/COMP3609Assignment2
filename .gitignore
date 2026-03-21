@@ -172,34 +172,6 @@ Desktop.ini
 # 2. Git doesn't handle binary files efficiently
 # 3. They can be regenerated or re-added separately
 # 4. Use Git LFS for large assets if needed
-# 
-# Images: PNG, JPG, JPEG, GIF, BMP, TIFF, WEBP
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.bmp
-*.tiff
-*.tif
-*.webp
-*.svg
-*.ico
-
-# Audio: WAV, MP3, OGG, FLAC, AIFF, MIDI
-*.wav
-*.mp3
-*.ogg
-*.flac
-*.aiff
-*.midi
-*.mid
-
-# Video: MP4, AVI, MOV, WMV, MKV
-*.mp4
-*.avi
-*.mov
-*.wmv
-*.mkv
 
 # -----------------------------------------------------------------------------
 # 6. LOG FILES
