@@ -30,18 +30,14 @@ public class GameWindow extends JFrame
         
         soundManager = SoundManager.getInstance();
         
-        // Create main panel
         mainPanel = new JPanel();
         mainPanel.setLayout(new BorderLayout());
         mainPanel.setBackground(Color.BLACK);
         
-        // Create info panel at top
         infoPanel = new InfoPanel();
         
-        // Create game panel
         gamePanel = new GamePanel(infoPanel);
         
-        // Create button panel
         createButtonPanel();
         
         // Add panels to main panel

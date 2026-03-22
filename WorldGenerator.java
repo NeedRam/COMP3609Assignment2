@@ -242,9 +242,10 @@ public class WorldGenerator {
             
             System.out.println("Created " + collectibles.size() + " animated coin collectibles at random positions");
         } else {
-            System.out.println("Failed to load coinStrip.png, using static collectibles");
+            System.out.println("Failed to load coinStrip.png, creating collectibles with placeholder sprites");
+            // Create collectibles with null AnimatedSprite (will show placeholder)
             for (int i = 0; i < positions.length; i++) {
-                collectibles.add(new Collectible(positions[i][0], positions[i][1], 30, 30));
+                collectibles.add(new Collectible(positions[i][0], positions[i][1], collectibleSize, collectibleSize, null));
             }
         }
         
