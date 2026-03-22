@@ -17,9 +17,9 @@ public class GrayScaleFX implements ImageFX {
     
     // Fade animation
     private boolean fadingIn;
-    private float currentAlpha; // 0.0 = full color, 1.0 = full grayscale
+    private float currentAlpha;
     private float fadeSpeed; // How fast to fade (units per frame)
-    private static final float FADE_DURATION = 2.0f; // 2 seconds
+    private static final float FADE_DURATION = 2.0f; // 2 secs
     private static final int TARGET_FPS = 60;
     
     public GrayScaleFX(int xPos, int yPos, int w, int h, String imagePath) {

@@ -133,16 +133,6 @@ public class GameWindow extends JFrame
             gamePanel.setDownKeyPressed(true);
         }
         
-        // Effect keys
-        if (keyCode == KeyEvent.VK_1) {
-            gamePanel.applyEffect("disappear");
-        }
-        if (keyCode == KeyEvent.VK_2) {
-            gamePanel.applyEffect("grayscale");
-        }
-        if (keyCode == KeyEvent.VK_3) {
-            gamePanel.applyEffect("tint");
-        }
     }
     
     @Override
