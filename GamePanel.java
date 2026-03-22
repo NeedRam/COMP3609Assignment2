@@ -63,7 +63,7 @@ public class GamePanel extends JPanel {
     // Collectibles tracking
     private int collectedCount;
     private int totalCollectibles;
-    private static final int WIN_COLLECTIBLES = 3; // Number of collectibles required to win
+    private static final int WIN_COLLECTIBLES = 5; // Number of collectibles required to win
     
     // FPS tracking
     private long lastFrameTime;
@@ -535,15 +535,18 @@ public class GamePanel extends JPanel {
                 final long targetNanos = TARGET_FRAME_TIME * 1_000_000; // Convert ms to ns
                 
                 while (gameThreadRunning && !Thread.currentThread().isInterrupted()) {
-                    long currentTime = System.nanoTime();
-                    long elapsedNanos = currentTime - lastFrameTime;
+                    long currentTimeNanos = System.nanoTime();
+                    long elapsedNanos = currentTimeNanos - lastFrameTime;
                     
                     // Calculate actual frame time for debug logging
                     long elapsedMs = elapsedNanos / 1_000_000;
                     
+                    // Calculate delta time in milliseconds for game logic
+                    long deltaTimeMs = elapsedMs;
+                    
                     if (gameRunning && !gamePaused) {
                         // Update game logic
-                        updatePlayer();
+                        updatePlayer(deltaTimeMs);
                         checkCollisions();
                         updateEffects();
                         
@@ -568,10 +571,12 @@ public class GamePanel extends JPanel {
                         }
                     }
                     
-                    lastFrameTime = currentTime;
+                    // Update local and class-level lastFrameTime for the game loop
+                    lastFrameTime = currentTimeNanos;
+                    GamePanel.this.lastFrameTime = System.currentTimeMillis();
                     
                     // Sleep for the remaining time to maintain target frame rate
-                    long sleepTimeNanos = targetNanos - (System.nanoTime() - currentTime);
+                    long sleepTimeNanos = targetNanos - (System.nanoTime() - currentTimeNanos);
                     if (sleepTimeNanos > 0) {
                         try {
                             Thread.sleep(sleepTimeNanos / 1_000_000, (int)(sleepTimeNanos % 1_000_000));
@@ -645,12 +650,8 @@ public class GamePanel extends JPanel {
         repaint();
     }
     
-    public void updatePlayer() {
+    public void updatePlayer(long deltaTime) {
         if (player == null || !gameRunning || gamePaused) return;
-        
-        // Calculate delta time for speed boost timer
-        long currentTime = System.currentTimeMillis();
-        long deltaTime = currentTime - lastFrameTime;
         
         // Update speed boost timer
         player.updateSpeedBoost(deltaTime);
@@ -661,6 +662,7 @@ public class GamePanel extends JPanel {
             if (goldenTintTimer <= 0) {
                 goldenTintActive = false;
                 goldenTintTimer = 0;
+                activeEffectName = "None";
             }
         }
         
@@ -792,6 +794,7 @@ public class GamePanel extends JPanel {
                 // Activate golden tint effect for 1 second
                 goldenTintActive = true;
                 goldenTintTimer = GOLDEN_TINT_DURATION;
+                activeEffectName = "Golden Tint";
                 
                 // Check win condition
                 if (collectedCount >= WIN_COLLECTIBLES) {

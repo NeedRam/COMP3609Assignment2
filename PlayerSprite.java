@@ -14,9 +14,9 @@ public class PlayerSprite extends Sprite {
     
     private int worldX;
     private int worldY;
-    private int dx = 25;
-    private int dy = 25;
-    private int baseSpeed = 25; // Store the normal speed
+    private int baseSpeed = 10; // Store the normal speed
+    private int dx = baseSpeed;
+    private int dy = baseSpeed;
     private boolean speedBoostActive = false;
     private long speedBoostTimer = 0; // Time remaining in milliseconds
     private static final long SPEED_BOOST_DURATION = 1000; // 1 second
@@ -82,8 +82,6 @@ public class PlayerSprite extends Sprite {
         worldY = yPos;
         screenX = xPos;
         screenY = yPos;
-        dx = 25;
-        dy = 25;
         width = 50;
         height = 50;
         
@@ -396,7 +394,6 @@ public class PlayerSprite extends Sprite {
      * Multiple activations reset the timer.
      */
     public void activateSpeedBoost() {
-        baseSpeed = 25; // Ensure baseSpeed is set to normal value
         dx = baseSpeed * SPEED_BOOST_MULTIPLIER;
         dy = baseSpeed * SPEED_BOOST_MULTIPLIER;
         speedBoostActive = true;
