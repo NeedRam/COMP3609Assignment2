@@ -3,36 +3,24 @@ import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Random;
 
-/**
- * WorldGenerator - Handles creation and placement of game entities in the world.
- * Separates world generation logic from GamePanel for better code organization.
- */
+// Handles creation and placement of game entities in the world.
+
 public class WorldGenerator {
     
     private Random random;
     private int worldWidth;
     private int worldHeight;
     
-    // Image arrays (loaded once and reused)
     private BufferedImage[] treeImages;
     private BufferedImage[] rockImages;
     
-    /**
-     * Create a new WorldGenerator with the specified world dimensions.
-     * 
-     * @param worldWidth The width of the game world
-     * @param worldHeight The height of the game world
-     */
+    // Create a new WorldGenerator with the specified world dimensions.
     public WorldGenerator(int worldWidth, int worldHeight) {
         this.worldWidth = worldWidth;
         this.worldHeight = worldHeight;
         this.random = new Random();
     }
     
-    /**
-     * Load tree and rock images using ImageManager.
-     * Should be called once at initialization.
-     */
     public void loadImages() {
         // Load tree images scaled to max height 150px
         treeImages = ImageManager.loadTreeImages(150);
@@ -53,30 +41,8 @@ public class WorldGenerator {
     }
     
     /**
-     * Get the tree images array.
-     * @return Array of tree BufferedImages
-     */
-    public BufferedImage[] getTreeImages() {
-        return treeImages;
-    }
-    
-    /**
-     * Get the rock images array.
-     * @return Array of rock BufferedImages
-     */
-    public BufferedImage[] getRockImages() {
-        return rockImages;
-    }
-    
-    /**
-     * Create solid objects (trees and rocks) at random positions.
+     * Create solid objects  at random positions
      * Avoids placing objects on top of player start position.
-     * 
-     * @param numObjects Number of objects to generate
-     * @param playerStartX Player's starting X position (to avoid)
-     * @param playerStartY Player's starting Y position (to avoid)
-     * @param safeZoneRadius Minimum distance from player start
-     * @return ArrayList of SolidObject instances
      */
     public ArrayList<SolidObject> createSolidObjects(int numObjects, int playerStartX, int playerStartY, int safeZoneRadius) {
         ArrayList<SolidObject> solids = new ArrayList<SolidObject>();
@@ -148,15 +114,7 @@ public class WorldGenerator {
         return solids;
     }
     
-    /**
-     * Create collectibles at random positions, avoiding solid objects.
-     * 
-     * @param solidObjects ArrayList of solid objects to avoid
-     * @param numCollectibles Number of collectibles to create
-     * @param collectibleSize Size of each collectible
-     * @param minDistanceFromSolid Minimum distance from solid objects
-     * @return ArrayList of Collectible instances
-     */
+    // reate collectibles at random positions, avoiding solid objects.
     public ArrayList<Collectible> createCollectibles(ArrayList<SolidObject> solidObjects, int numCollectibles, 
                                                        int collectibleSize, int minDistanceFromSolid) {
         ArrayList<Collectible> collectibles = new ArrayList<Collectible>();
@@ -243,7 +201,6 @@ public class WorldGenerator {
             System.out.println("Created " + collectibles.size() + " animated coin collectibles at random positions");
         } else {
             System.out.println("Failed to load coinStrip.png, creating collectibles with placeholder sprites");
-            // Create collectibles with null AnimatedSprite (will show placeholder)
             for (int i = 0; i < positions.length; i++) {
                 collectibles.add(new Collectible(positions[i][0], positions[i][1], collectibleSize, collectibleSize, null));
             }
@@ -252,12 +209,6 @@ public class WorldGenerator {
         return collectibles;
     }
     
-    /**
-     * Create animated sprites for the world.
-     * 
-     * @param panel The JPanel to associate with sprites (can be null)
-     * @return ArrayList of AnimatedSprite instances
-     */
     public ArrayList<AnimatedSprite> createAnimatedSprites(javax.swing.JPanel panel) {
         ArrayList<AnimatedSprite> sprites = new ArrayList<AnimatedSprite>();
         
@@ -273,15 +224,6 @@ public class WorldGenerator {
         return sprites;
     }
     
-    /**
-     * Calculates the minimum distance from a point (x, y) to a rectangle.
-     * Returns 0 if the point is inside the rectangle.
-     * 
-     * @param x The x coordinate of the point
-     * @param y The y coordinate of the point
-     * @param rect The rectangle to calculate distance to
-     * @return The minimum distance from point to rectangle
-     */
     public double getDistanceFromRect(int x, int y, Rectangle2D.Double rect) {
         double closestX = Math.max(rect.getMinX(), Math.min(x, rect.getMaxX()));
         double closestY = Math.max(rect.getMinY(), Math.min(y, rect.getMaxY()));

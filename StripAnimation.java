@@ -5,9 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * StripAnimation - A utility class for extracting and managing animations from sprite sheets.
- * Provides methods to extract frames from sprite sheet rows, create animations,
- * and flip images horizontally.
+ * For extracting and managing animations from sprite sheets.
+ * Provides methods to extract frames from sprite sheet rows, create animations, and flip images horizontally.
  */
 public class StripAnimation {
     
@@ -24,41 +23,19 @@ public class StripAnimation {
     // Animation speed control (in milliseconds per frame)
     private long animationSpeed = 40;
     
-    /**
-     * Default constructor using default frame dimensions.
-     */
+    // Default constructor using default frame dimensions.
     public StripAnimation() {
         this(FRAME_WIDTH, FRAME_HEIGHT, FRAMES_PER_ROW);
     }
     
-    /**
-     * Constructor with custom frame dimensions.
-     * 
-     * @param frameWidth The width of each frame in pixels
-     * @param frameHeight The height of each frame in pixels
-     * @param framesPerRow The number of frames per row in the sprite sheet
-     */
+
+    // Constructor with custom frame dimensions.
     public StripAnimation(int frameWidth, int frameHeight, int framesPerRow) {
         this.frameWidth = frameWidth;
         this.frameHeight = frameHeight;
         this.framesPerRow = framesPerRow;
     }
     
-    /**
-     * Get the animation speed (duration per frame in milliseconds).
-     * 
-     * @return The animation speed in milliseconds
-     */
-    public long getAnimationSpeed() {
-        return animationSpeed;
-    }
-    
-    /**
-     * Set the animation speed (duration per frame in milliseconds).
-     * The speed must be at least 1 millisecond.
-     * 
-     * @param speed The animation speed in milliseconds (must be >= 1)
-     */
     public void setAnimationSpeed(long speed) {
         if (speed < 1) {
             this.animationSpeed = 1;
@@ -70,10 +47,6 @@ public class StripAnimation {
     /**
      * Extract frames from a specific row in the sprite sheet.
      * Each row represents a different animation direction.
-     * 
-     * @param spriteSheet The source sprite sheet image
-     * @param rowIndex The row index (0, 1, or 2)
-     * @return Array of BufferedImage frames
      */
     public BufferedImage[] extractFramesFromRow(BufferedImage spriteSheet, int rowIndex) {
         if (spriteSheet == null) {
@@ -86,11 +59,10 @@ public class StripAnimation {
         for (int i = 0; i < framesPerRow; i++) {
             int x = i * frameWidth;
             
-            // Make sure we don't go beyond the sprite sheet bounds
+            // so we don't go beyond the sprite sheet bounds
             if (x + frameWidth <= spriteSheet.getWidth() && y + frameHeight <= spriteSheet.getHeight()) {
                 frames[i] = spriteSheet.getSubimage(x, y, frameWidth, frameHeight);
             } else {
-                // If we run out of frames, break out of loop
                 break;
             }
         }
@@ -110,14 +82,7 @@ public class StripAnimation {
         return result;
     }
     
-    /**
-     * Create an animation from an array of frames, optionally flipped horizontally.
-     * 
-     * @param frames The source frames
-     * @param frameDuration Duration per frame in milliseconds
-     * @param flip Whether to flip the frames horizontally
-     * @return Animation object
-     */
+    // Create an animation from an array of frames
     public Animation createAnimationFromFrames(BufferedImage[] frames, long frameDuration, boolean flip) {
         Animation anim = new Animation(true);
         
@@ -135,13 +100,7 @@ public class StripAnimation {
         return anim;
     }
     
-    /**
-     * Flip an image horizontally using AffineTransform.
-     * This provides better quality flipping than the traditional method.
-     * 
-     * @param src The source image to flip
-     * @return The horizontally flipped BufferedImage
-     */
+    // Flip an image horizontally using AffineTransform.
     public BufferedImage flipImageHorizontally(BufferedImage src) {
         if (src == null) return null;
         
@@ -165,69 +124,8 @@ public class StripAnimation {
     /**
      * Load sprite strip and create animations keyed by direction.
      * Returns a Map where keys are direction constants and values are Animation objects.
-     * 
-     * Direction constants:
-     * - 0: Left animation (no flip) - Row 0
-     * - 1: Right animation (flipped) - Row 0 flipped
-     * - 2: Up Left animation (no flip) - Row 0 (same as left)
-     * - 3: Up Right animation (flipped) - Row 0 flipped (same as right)
-     * - 4: Down animation (no flip) - Row 1
-     * - 5: Down Left animation (no flip) - Row 2
-     * - 6: Down Right animation (flipped) - Row 2 flipped
-     * 
-     * @param spriteSheetPath Path to the sprite sheet image file
-     * @param frameDuration Duration per frame in milliseconds
-     * @return Map of direction constants to Animation objects
      */
     public static Map<Integer, Animation> loadSpriteAnimations(String spriteSheetPath, long frameDuration) {
-        // Create StripAnimation instance and set the animation speed for backward compatibility
-        StripAnimation stripAnim = new StripAnimation();
-        stripAnim.setAnimationSpeed(frameDuration);
-        
-        // Use the instance method which uses this.animationSpeed
-        return stripAnim.loadSpriteAnimations(spriteSheetPath);
-    }
-    
-    /**
-     * Load sprite strip and create animations with custom frame dimensions.
-     * 
-     * @param spriteSheetPath Path to the sprite sheet image file
-     * @param frameWidth Width of each frame
-     * @param frameHeight Height of each frame
-     * @param framesPerRow Number of frames per row
-     * @param frameDuration Duration per frame in milliseconds
-     * @return Map of direction constants to Animation objects
-     */
-    public static Map<Integer, Animation> loadSpriteAnimations(String spriteSheetPath, 
-                                                                 int frameWidth, int frameHeight, 
-                                                                 int framesPerRow, long frameDuration) {
-        // Create StripAnimation instance with custom dimensions
-        StripAnimation stripAnim = new StripAnimation(frameWidth, frameHeight, framesPerRow);
-        stripAnim.setAnimationSpeed(frameDuration);
-        
-        // Use the instance method which uses this.animationSpeed
-        return stripAnim.loadSpriteAnimations(spriteSheetPath);
-    }
-    
-    /**
-     * Load sprite strip and create animations using the instance's animationSpeed.
-     * Returns a Map where keys are direction constants and values are Animation objects.
-     * This method provides a single point of control for animation speed through
-     * the animationSpeed instance variable.
-     * 
-     * Direction constants:
-     * - 0: Left animation (no flip) - Row 0
-     * - 1: Right animation (flipped) - Row 0 flipped
-     * - 2: Up Left animation (no flip) - Row 0 (same as left)
-     * - 3: Up Right animation (flipped) - Row 0 flipped (same as right)
-     * - 4: Down animation (no flip) - Row 1
-     * - 5: Down Left animation (no flip) - Row 2
-     * - 6: Down Right animation (flipped) - Row 2 flipped
-     * 
-     * @param spriteSheetPath Path to the sprite sheet image file
-     * @return Map of direction constants to Animation objects
-     */
-    public Map<Integer, Animation> loadSpriteAnimations(String spriteSheetPath) {
         Map<Integer, Animation> animations = new HashMap<>();
         
         // Load the sprite strip using ImageManager
@@ -238,90 +136,49 @@ public class StripAnimation {
             return animations;
         }
         
-        System.out.println("Sprite sheet loaded: " + spriteSheet.getWidth() + "x" + spriteSheet.getHeight());
+        StripAnimation stripAnim = new StripAnimation();
         
         // Extract frames for each direction row
-        BufferedImage[] row0Frames = this.extractFramesFromRow(spriteSheet, 0); // Row 0: Left running (side view)
-        BufferedImage[] row1Frames = this.extractFramesFromRow(spriteSheet, 1); // Row 1: Down (front view)
-        BufferedImage[] row2Frames = this.extractFramesFromRow(spriteSheet, 2); // Row 2: Down+Left (3/4 view)
-        
-        System.out.println("Extracted frames - Row 0: " + row0Frames.length + ", Row 1: " + row1Frames.length + ", Row 2: " + row2Frames.length);
+        BufferedImage[] row0Frames = stripAnim.extractFramesFromRow(spriteSheet, 0);
+        BufferedImage[] row1Frames = stripAnim.extractFramesFromRow(spriteSheet, 1);
+        BufferedImage[] row2Frames = stripAnim.extractFramesFromRow(spriteSheet, 2);
         
         // Create LEFT animation - Row 0, no flip
         if (row0Frames.length > 0) {
-            animations.put(0, this.createAnimationFromFrames(row0Frames, this.animationSpeed, false));
+            animations.put(0, stripAnim.createAnimationFromFrames(row0Frames, frameDuration, false));
         }
         
         // Create RIGHT animation - Row 0, flipped horizontally
         if (row0Frames.length > 0) {
-            animations.put(1, this.createAnimationFromFrames(row0Frames, this.animationSpeed, true));
+            animations.put(1, stripAnim.createAnimationFromFrames(row0Frames, frameDuration, true));
         }
         
         // Create UP+LEFT animation - Row 0, no flip (same as LEFT)
         if (row0Frames.length > 0) {
-            animations.put(2, this.createAnimationFromFrames(row0Frames, this.animationSpeed, false));
+            animations.put(2, stripAnim.createAnimationFromFrames(row0Frames, frameDuration, false));
         }
         
         // Create UP+RIGHT animation - Row 0, flipped horizontally
         if (row0Frames.length > 0) {
-            animations.put(3, this.createAnimationFromFrames(row0Frames, this.animationSpeed, true));
+            animations.put(3, stripAnim.createAnimationFromFrames(row0Frames, frameDuration, true));
         }
         
         // Create DOWN animation - Row 1 (front view), no flip
         if (row1Frames.length > 0) {
-            animations.put(4, this.createAnimationFromFrames(row1Frames, this.animationSpeed, false));
+            animations.put(4, stripAnim.createAnimationFromFrames(row1Frames, frameDuration, false));
         }
         
         // Create DOWN+LEFT animation - Row 2 (3/4 view), no flip
         if (row2Frames.length > 0) {
-            animations.put(5, this.createAnimationFromFrames(row2Frames, this.animationSpeed, false));
+            animations.put(5, stripAnim.createAnimationFromFrames(row2Frames, frameDuration, false));
         }
         
         // Create DOWN+RIGHT animation - Row 2 (3/4 view), flipped horizontally
         if (row2Frames.length > 0) {
-            animations.put(6, this.createAnimationFromFrames(row2Frames, this.animationSpeed, true));
+            animations.put(6, stripAnim.createAnimationFromFrames(row2Frames, frameDuration, true));
         }
         
         return animations;
     }
     
-    /**
-     * Get the frame width.
-     * 
-     * @return The frame width in pixels
-     */
-    public int getFrameWidth() {
-        return frameWidth;
-    }
-    
-    /**
-     * Get the frame height.
-     * 
-     * @return The frame height in pixels
-     */
-    public int getFrameHeight() {
-        return frameHeight;
-    }
-    
-    /**
-     * Get the number of frames per row.
-     * 
-     * @return The number of frames per row
-     */
-    public int getFramesPerRow() {
-        return framesPerRow;
-    }
-    
-    /**
-     * Set custom frame dimensions.
-     * 
-     * @param frameWidth The width of each frame in pixels
-     * @param frameHeight The height of each frame in pixels
-     * @param framesPerRow The number of frames per row in the sprite sheet
-     */
-    public void setFrameDimensions(int frameWidth, int frameHeight, int framesPerRow) {
-        this.frameWidth = frameWidth;
-        this.frameHeight = frameHeight;
-        this.framesPerRow = framesPerRow;
-    }
 }

@@ -1,5 +1,4 @@
 import java.awt.Graphics2D;
-import java.awt.geom.Rectangle2D;
 import javax.swing.JPanel;
 
 /**
@@ -48,27 +47,4 @@ public class AnimatedSprite extends Sprite {
         }
     }
     
-    public Rectangle2D.Double getBoundingRectangle() {
-        return new Rectangle2D.Double(x, y, width, height);
-    }
-    
-    public Rectangle2D.Double getScreenBoundingRectangle() {
-        return new Rectangle2D.Double(screenX, screenY, width, height);
-    }
-    
-    public boolean isActive() {
-        return active;
-    }
-    
-    public void setActive(boolean a) {
-        active = a;
-    }
-    
-    public int getScreenX() {
-        return screenX;
-    }
-    
-    public int getScreenY() {
-        return screenY;
-    }
 }

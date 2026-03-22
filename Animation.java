@@ -40,10 +40,6 @@ public class Animation {
         startTime = System.currentTimeMillis();
     }
     
-    public synchronized void stop() {
-        isActive = false;
-    }
-    
     public synchronized void update() {
         if (!isActive || frames.size() <= 1)
             return;
@@ -76,20 +72,12 @@ public class Animation {
         return getFrame(currFrameIndex).image;
     }
     
-    public int getNumFrames() {
-        return frames.size();
-    }
-    
     private AnimFrame getFrame(int i) {
         return frames.get(i);
     }
     
     public boolean isActive() {
         return isActive;
-    }
-    
-    public void setLoop(boolean loop) {
-        this.loop = loop;
     }
     
     private class AnimFrame {

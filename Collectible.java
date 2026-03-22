@@ -63,24 +63,12 @@ public class Collectible {
         return new Rectangle2D.Double(x, y, width, height);
     }
     
-    public Rectangle2D.Double getScreenBoundingRectangle() {
-        return new Rectangle2D.Double(screenX, screenY, width, height);
-    }
-    
     public boolean isCollected() {
         return collected;
     }
     
     public void collect() {
         collected = true;
-    }
-    
-    public int getX() {
-        return x;
-    }
-    
-    public int getY() {
-        return y;
     }
     
     public int getScreenX() {

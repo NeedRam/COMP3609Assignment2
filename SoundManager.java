@@ -5,9 +5,8 @@ import javax.sound.sampled.FloatControl;
 import java.io.File;
 import java.util.HashMap;
 
-/**
- * Sound clip management with singleton pattern.
- */
+// Sound clip management with singleton pattern.
+
 public class SoundManager {
     
     private static SoundManager instance = null;
@@ -71,25 +70,16 @@ public class SoundManager {
         return clip != null && clip.isRunning();
     }
     
-    /**
-     * Start the footstep sound (looping).
-     */
     public void startFootstep() {
         if (!isPlaying("footstep")) {
             playClip("footstep", true);
         }
     }
     
-    /**
-     * Stop the footstep sound.
-     */
     public void stopFootstep() {
         stopClip("footstep");
     }
     
-    /**
-     * Play background music in a loop at 60% volume.
-     */
     public void playBackgroundMusic() {
         Clip clip = clips.get("background");
         if (clip != null) {
@@ -97,7 +87,6 @@ public class SoundManager {
             FloatControl volumeControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
             if (volumeControl != null) {
                 // Convert 0.6f to decibels
-                // -6dB is roughly 50%, 0dB is 100%
                 float volume = 0.6f;
                 float dB = (float) (20 * Math.log10(volume));
                 volumeControl.setValue(dB);

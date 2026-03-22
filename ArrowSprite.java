@@ -145,6 +145,7 @@ public class ArrowSprite {
         
         // Enable alpha blending for proper transparency rendering
         // This ensures the per-pixel alpha from DisappearFX is respected
+        // The normal method from the class wasn't working
         g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, currentAlpha));
         
         // Draw the image with alpha composite applied
