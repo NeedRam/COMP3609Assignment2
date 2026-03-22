@@ -31,7 +31,7 @@ public class ArrowSprite {
      */
     public ArrowSprite() {
         // Load the arrow image using ImageManager.loadBufferedImage()
-        originalImage = ImageManager.loadBufferedImage("Arrow.png");
+        originalImage = ImageManager.loadBufferedImage("images/Arrow.png");
         
         if (originalImage != null) {
             width = originalImage.getWidth();
@@ -46,7 +46,7 @@ public class ArrowSprite {
         
         // Create DisappearFX instance for alpha manipulation
         // Use 0, 0 for x, y since we'll set position in update()
-        disappearFX = new DisappearFX(0, 0, width, height, "Arrow.png");
+        disappearFX = new DisappearFX(0, 0, width, height, "images/Arrow.png");
         
         rotationAngle = 0;
         screenX = 0;

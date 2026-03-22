@@ -1,6 +1,5 @@
 import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.Map;
@@ -14,7 +13,7 @@ public class PlayerSprite extends Sprite {
     
     private int worldX;
     private int worldY;
-    private int baseSpeed = 10; // Store the normal speed
+    private int baseSpeed = 5; // Store the normal speed
     private int dx = baseSpeed;
     private int dy = baseSpeed;
     private boolean speedBoostActive = false;
@@ -103,7 +102,7 @@ public class PlayerSprite extends Sprite {
      */
     private void loadSpriteAnimations() {
         // Use StripAnimation to load sprite strip and get animations
-        Map<Integer, Animation> animations = StripAnimation.loadSpriteAnimations("playerRunningStrip.png", 80);
+        Map<Integer, Animation> animations = StripAnimation.loadSpriteAnimations("images/playerRunningStrip.png", 80);
         
         if (animations == null || animations.isEmpty()) {
             System.out.println("Failed to load playerRunningStrip.png, falling back to player.png");
@@ -131,7 +130,7 @@ public class PlayerSprite extends Sprite {
         if (walkLeftAnim != null) {
             // Get the first frame from walkLeftAnim for idle
             StripAnimation stripAnim = new StripAnimation();
-            BufferedImage spriteStrip = ImageManager.loadBufferedImage("playerRunningStrip.png");
+            BufferedImage spriteStrip = ImageManager.loadBufferedImage("images/playerRunningStrip.png");
             if (spriteStrip != null) {
                 BufferedImage[] row0Frames = stripAnim.extractFramesFromRow(spriteStrip, 0);
                 if (row0Frames.length > 0) {
@@ -149,129 +148,82 @@ public class PlayerSprite extends Sprite {
     public void move(int direction) {
         if (!panel.isVisible()) return;
         
-        int oldWorldX = worldX;
-        int oldWorldY = worldY;
+        Animation animationToPlay = null;
         
         switch (direction) {
             case DIR_LEFT:
                 worldX = worldX - dx;
                 facingDirection = DIR_LEFT;
                 currentState = STATE_WALK;
-                // Row 0 (side view running left), no flip
-                if (walkLeftAnim != null) {
-                    currentAnimation = walkLeftAnim;
-                    if (!currentAnimation.isActive()) {
-                        currentAnimation.start();
-                    }
-                }
-                // Play footstep sound
-                soundManager.startFootstep();
+                animationToPlay = walkLeftAnim;
                 break;
             case DIR_RIGHT:
                 worldX = worldX + dx;
                 facingDirection = DIR_RIGHT;
                 currentState = STATE_WALK;
-                // Row 0 (side view running left), flipped horizontally
-                if (walkRightAnim != null) {
-                    currentAnimation = walkRightAnim;
-                    if (!currentAnimation.isActive()) {
-                        currentAnimation.start();
-                    }
-                }
-                // Play footstep sound
-                soundManager.startFootstep();
+                animationToPlay = walkRightAnim;
                 break;
             case DIR_UP:
                 worldY = worldY - dy;
                 currentState = STATE_WALK;
-                // Use right animation for up (side view)
-                if (walkRightAnim != null) {
-                    currentAnimation = walkRightAnim;
-                    if (!currentAnimation.isActive()) {
-                        currentAnimation.start();
-                    }
-                }
-                // Play footstep sound
-                soundManager.startFootstep();
+                animationToPlay = walkRightAnim;
                 break;
             case DIR_DOWN:
                 worldY = worldY + dy;
                 currentState = STATE_WALK;
-                // Row 1 (front view running toward screen)
-                if (walkDownAnim != null) {
-                    currentAnimation = walkDownAnim;
-                    if (!currentAnimation.isActive()) {
-                        currentAnimation.start();
-                    }
-                }
-                // Play footstep sound
-                soundManager.startFootstep();
+                animationToPlay = walkDownAnim;
                 break;
             case DIR_UP_LEFT:
                 worldX = worldX - dx;
                 worldY = worldY - dy;
                 facingDirection = DIR_UP_LEFT;
                 currentState = STATE_WALK;
-                // Row 0 (side view running left), no flip
-                if (walkUpLeftAnim != null) {
-                    currentAnimation = walkUpLeftAnim;
-                    if (!currentAnimation.isActive()) {
-                        currentAnimation.start();
-                    }
-                }
-                // Play footstep sound
-                soundManager.startFootstep();
+                animationToPlay = walkUpLeftAnim;
                 break;
             case DIR_UP_RIGHT:
                 worldX = worldX + dx;
                 worldY = worldY - dy;
                 facingDirection = DIR_UP_RIGHT;
                 currentState = STATE_WALK;
-                // Row 0 (side view running left), flipped horizontally
-                if (walkUpRightAnim != null) {
-                    currentAnimation = walkUpRightAnim;
-                    if (!currentAnimation.isActive()) {
-                        currentAnimation.start();
-                    }
-                }
-                // Play footstep sound
-                soundManager.startFootstep();
+                animationToPlay = walkUpRightAnim;
                 break;
             case DIR_DOWN_LEFT:
                 worldX = worldX - dx;
                 worldY = worldY + dy;
                 facingDirection = DIR_DOWN_LEFT;
                 currentState = STATE_WALK;
-                // Row 2 (3/4 view), no flip
-                if (walkDownLeftAnim != null) {
-                    currentAnimation = walkDownLeftAnim;
-                    if (!currentAnimation.isActive()) {
-                        currentAnimation.start();
-                    }
-                }
-                // Play footstep sound
-                soundManager.startFootstep();
+                animationToPlay = walkDownLeftAnim;
                 break;
             case DIR_DOWN_RIGHT:
                 worldX = worldX + dx;
                 worldY = worldY + dy;
                 facingDirection = DIR_DOWN_RIGHT;
                 currentState = STATE_WALK;
-                // Row 2 (3/4 view), flipped horizontally
-                if (walkDownRightAnim != null) {
-                    currentAnimation = walkDownRightAnim;
-                    if (!currentAnimation.isActive()) {
-                        currentAnimation.start();
-                    }
-                }
-                // Play footstep sound
-                soundManager.startFootstep();
+                animationToPlay = walkDownRightAnim;
                 break;
         }
+        
+        // Set animation and play sound
+        setAnimationAndPlaySound(animationToPlay);
         
         // Clamp to world bounds
         worldX = clamp(worldX, 0, worldWidth - width);
         worldY = clamp(worldY, 0, worldHeight - height);
+    }
+    
+    /**
+     * Helper method to set animation and play footstep sound.
+     * 
+     * @param anim The animation to set as current animation
+     */
+    private void setAnimationAndPlaySound(Animation anim) {
+        if (anim != null) {
+            currentAnimation = anim;
+            if (!currentAnimation.isActive()) {
+                currentAnimation.start();
+            }
+        }
+        soundManager.startFootstep();
     }
     
     /**

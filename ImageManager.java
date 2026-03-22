@@ -67,6 +67,234 @@ public class ImageManager {
     }
     
     /**
+     * Apply grayscale conversion to a BufferedImage.
+     * 
+     * @param src The source image to convert
+     * @return A new grayscale BufferedImage, or null if src is null
+     */
+    public static BufferedImage applyGrayscale(BufferedImage src) {
+        if (src == null) return null;
+        
+        int width = src.getWidth();
+        int height = src.getHeight();
+        
+        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int[] pixels = new int[width * height];
+        src.getRGB(0, 0, width, height, pixels, 0, width);
+        
+        for (int i = 0; i < pixels.length; i++) {
+            int alpha = (pixels[i] >> 24) & 255;
+            int red = (pixels[i] >> 16) & 255;
+            int green = (pixels[i] >> 8) & 255;
+            int blue = pixels[i] & 255;
+            
+            // Standard grayscale conversion
+            int gray = (int)(0.299 * red + 0.587 * green + 0.114 * blue);
+            pixels[i] = (alpha << 24) | (gray << 16) | (gray << 8) | gray;
+        }
+        
+        result.setRGB(0, 0, width, height, pixels, 0, width);
+        return result;
+    }
+    
+    /**
+     * Apply a tint color to a BufferedImage.
+     * 
+     * @param src The source image to tint
+     * @param tintRGB The RGB tint color
+     * @return A new tinted BufferedImage, or null if src is null
+     */
+    public static BufferedImage applyTint(BufferedImage src, int tintRGB) {
+        if (src == null) return null;
+        
+        int width = src.getWidth();
+        int height = src.getHeight();
+        
+        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int[] pixels = new int[width * height];
+        src.getRGB(0, 0, width, height, pixels, 0, width);
+        
+        int tintRed = (tintRGB >> 16) & 255;
+        int tintGreen = (tintRGB >> 8) & 255;
+        int tintBlue = tintRGB & 255;
+        
+        for (int i = 0; i < pixels.length; i++) {
+            int alpha = (pixels[i] >> 24) & 255;
+            int red = (pixels[i] >> 16) & 255;
+            int green = (pixels[i] >> 8) & 255;
+            int blue = pixels[i] & 255;
+            
+            // Blend with tint color
+            red = (red + tintRed) / 2;
+            green = (green + tintGreen) / 2;
+            blue = (blue + tintBlue) / 2;
+            
+            pixels[i] = (alpha << 24) | (red << 16) | (green << 8) | blue;
+        }
+        
+        result.setRGB(0, 0, width, height, pixels, 0, width);
+        return result;
+    }
+    
+    /**
+     * Apply alpha transparency to a BufferedImage.
+     * 
+     * @param src The source image
+     * @param alphaValue The alpha value (0-255)
+     * @return A new BufferedImage with alpha applied, or null if src is null
+     */
+    public static BufferedImage applyAlpha(BufferedImage src, int alphaValue) {
+        if (src == null) return null;
+        
+        int width = src.getWidth();
+        int height = src.getHeight();
+        
+        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int[] pixels = new int[width * height];
+        src.getRGB(0, 0, width, height, pixels, 0, width);
+        
+        for (int i = 0; i < pixels.length; i++) {
+            int alpha = (pixels[i] >> 24) & 255;
+            int red = (pixels[i] >> 16) & 255;
+            int green = (pixels[i] >> 8) & 255;
+            int blue = pixels[i] & 255;
+            
+            // Only modify if pixel is not fully transparent
+            if (alpha > 0) {
+                pixels[i] = blue | (green << 8) | (red << 16) | (alphaValue << 24);
+            }
+        }
+        
+        result.setRGB(0, 0, width, height, pixels, 0, width);
+        return result;
+    }
+    
+    /**
+     * Scale a BufferedImage to the specified width and height.
+     * 
+     * @param src The source image to scale
+     * @param newWidth The desired width
+     * @param newHeight The desired height
+     * @return The scaled BufferedImage, or null if src is null
+     */
+    public static BufferedImage scaleImage(BufferedImage src, int newWidth, int newHeight) {
+        if (src == null) return null;
+        
+        BufferedImage scaled = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = scaled.createGraphics();
+        g2.drawImage(src, 0, 0, newWidth, newHeight, null);
+        g2.dispose();
+        
+        return scaled;
+    }
+    
+    /**
+     * Scale a BufferedImage to fit within the specified max dimensions while maintaining aspect ratio.
+     * 
+     * @param src The source image to scale
+     * @param maxWidth The maximum width
+     * @param maxHeight The maximum height
+     * @return The scaled BufferedImage, or null if src is null
+     */
+    public static BufferedImage scaleImageToFit(BufferedImage src, int maxWidth, int maxHeight) {
+        if (src == null) return null;
+        
+        int srcWidth = src.getWidth();
+        int srcHeight = src.getHeight();
+        
+        // Calculate scaling ratio to fit within max dimensions
+        double widthRatio = (double) maxWidth / srcWidth;
+        double heightRatio = (double) maxHeight / srcHeight;
+        double ratio = Math.min(widthRatio, heightRatio);
+        
+        int newWidth = (int) (srcWidth * ratio);
+        int newHeight = (int) (srcHeight * ratio);
+        
+        return scaleImage(src, newWidth, newHeight);
+    }
+    
+    /**
+     * Scale a BufferedImage to a specific height while maintaining aspect ratio.
+     * 
+     * @param src The source image to scale
+     * @param targetHeight The desired height
+     * @return The scaled BufferedImage, or null if src is null
+     */
+    public static BufferedImage scaleImageToHeight(BufferedImage src, int targetHeight) {
+        if (src == null) return null;
+        
+        int newWidth = (int) (src.getWidth() * ((double) targetHeight / src.getHeight()));
+        return scaleImage(src, newWidth, targetHeight);
+    }
+    
+    /**
+     * Scale a BufferedImage to a specific width while maintaining aspect ratio.
+     * 
+     * @param src The source image to scale
+     * @param targetWidth The desired width
+     * @return The scaled BufferedImage, or null if src is null
+     */
+    public static BufferedImage scaleImageToWidth(BufferedImage src, int targetWidth) {
+        if (src == null) return null;
+        
+        int newHeight = (int) (src.getHeight() * ((double) targetWidth / src.getWidth()));
+        return scaleImage(src, targetWidth, newHeight);
+    }
+    
+    /**
+     * Load and scale tree images to max height.
+     * 
+     * @param targetHeight The target height for all tree images
+     * @return Array of scaled tree BufferedImages
+     */
+    public static BufferedImage[] loadTreeImages(int targetHeight) {
+        BufferedImage[] trees = new BufferedImage[6];
+        BufferedImage[] originals = new BufferedImage[6];
+        originals[0] = loadBufferedImage("images/trees/Tree1.png");
+        originals[1] = loadBufferedImage("images/trees/Tree2.png");
+        originals[2] = loadBufferedImage("images/trees/Tree3.png");
+        originals[3] = loadBufferedImage("images/trees/Tree4.png");
+        originals[4] = loadBufferedImage("images/trees/Tree5.png");
+        originals[5] = loadBufferedImage("images/trees/Tree6.png");
+        
+        for (int i = 0; i < originals.length; i++) {
+            if (originals[i] != null) {
+                trees[i] = scaleImageToHeight(originals[i], targetHeight);
+            }
+        }
+        
+        return trees;
+    }
+    
+    /**
+     * Load and scale rock images to max width.
+     * 
+     * @param targetWidth The target width for all rock images
+     * @return Array of scaled rock BufferedImages
+     */
+    public static BufferedImage[] loadRockImages(int targetWidth) {
+        BufferedImage[] rocks = new BufferedImage[9];
+        BufferedImage[] originals = new BufferedImage[9];
+        originals[0] = loadBufferedImage("images/rocks/Rock1.png");
+        originals[1] = loadBufferedImage("images/rocks/Rock2.png");
+        originals[2] = loadBufferedImage("images/rocks/Rock3.png");
+        originals[3] = loadBufferedImage("images/rocks/Rock4.png");
+        originals[4] = loadBufferedImage("images/rocks/Rock5.png");
+        originals[5] = loadBufferedImage("images/rocks/Rock6.png");
+        originals[6] = loadBufferedImage("images/rocks/Rock7.png");
+        originals[7] = loadBufferedImage("images/rocks/Rock8.png");
+        originals[8] = loadBufferedImage("images/rocks/Rock9.png");
+        
+        for (int i = 0; i < originals.length; i++) {
+            if (originals[i] != null) {
+                rocks[i] = scaleImageToWidth(originals[i], targetWidth);
+            }
+        }
+        
+        return rocks;
+    }
+    
+    /**
      * Check if a pixel is transparent (alpha = 0).
      */
     private static boolean isPixelTransparent(BufferedImage img, int x, int y) {

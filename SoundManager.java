@@ -1,6 +1,7 @@
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.FloatControl;
 import java.io.File;
 import java.util.HashMap;
 
@@ -16,8 +17,9 @@ public class SoundManager {
         clips = new HashMap<String, Clip>();
         
         // Load sound clips
-        loadClip("footstep", "runningOnGrass.wav");
-        loadClip("coinPickup", "coinPickp.wav");
+        loadClip("footstep", "sounds/runningOnGrass.wav");
+        loadClip("coinPickup", "sounds/coinPickp.wav");
+        loadClip("background", "sounds/backgroundMusic.wav");
     }
     
     public static SoundManager getInstance() {
@@ -83,5 +85,27 @@ public class SoundManager {
      */
     public void stopFootstep() {
         stopClip("footstep");
+    }
+    
+    /**
+     * Play background music in a loop at 60% volume.
+     */
+    public void playBackgroundMusic() {
+        Clip clip = clips.get("background");
+        if (clip != null) {
+            // Set volume to 60% (0.6f)
+            FloatControl volumeControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+            if (volumeControl != null) {
+                // Convert 0.6f to decibels
+                // -6dB is roughly 50%, 0dB is 100%
+                float volume = 0.6f;
+                float dB = (float) (20 * Math.log10(volume));
+                volumeControl.setValue(dB);
+            }
+            
+            // Reset to beginning and play in loop
+            clip.setFramePosition(0);
+            clip.loop(Clip.LOOP_CONTINUOUSLY);
+        }
     }
 }

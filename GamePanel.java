@@ -42,12 +42,11 @@ public class GamePanel extends JPanel {
     // Background
     private BufferedImage backgroundImage;
     
-    // Tree and rock images
-    private BufferedImage[] treeImages;
-    private BufferedImage[] rockImages;
-    
     // Random number generator
     private Random random;
+    
+    // World generator for entity creation
+    private WorldGenerator worldGenerator;
     
     // Double buffering
     private BufferedImage doubleBufferImage;
@@ -131,15 +130,16 @@ public class GamePanel extends JPanel {
         // Initialize random generator
         random = new Random();
         
-        // Load tree and rock images
-        loadImages();
+        // Initialize world generator
+        worldGenerator = new WorldGenerator(WORLD_WIDTH, WORLD_HEIGHT);
+        worldGenerator.loadImages();
         
         // Initialize double buffering
         doubleBufferImage = new BufferedImage(800, 600, BufferedImage.TYPE_INT_ARGB);
         doubleBufferG2 = doubleBufferImage.createGraphics();
         
         // Load background image
-        backgroundImage = ImageManager.loadBufferedImage("worldBackgroundSmall.png");
+        backgroundImage = ImageManager.loadBufferedImage("images/worldBackgroundSmall.png");
         if (backgroundImage != null) {
             System.out.println("World background loaded: " + WORLD_WIDTH + "x" + WORLD_HEIGHT);
         } else {
@@ -163,68 +163,7 @@ public class GamePanel extends JPanel {
         gameThreadRunning = false;
     }
     
-    /**
-     * Loads tree and rock images from the res/images folders.
-     */
-    private void loadImages() {
-        // Load tree images and scale them to max height 400px
-        treeImages = new BufferedImage[6];
-        BufferedImage[] originalTreeImages = new BufferedImage[6];
-        originalTreeImages[0] = ImageManager.loadBufferedImage("trees/Tree1.png");
-        originalTreeImages[1] = ImageManager.loadBufferedImage("trees/Tree2.png");
-        originalTreeImages[2] = ImageManager.loadBufferedImage("trees/Tree3.png");
-        originalTreeImages[3] = ImageManager.loadBufferedImage("trees/Tree4.png");
-        originalTreeImages[4] = ImageManager.loadBufferedImage("trees/Tree5.png");
-        originalTreeImages[5] = ImageManager.loadBufferedImage("trees/Tree6.png");
-        
-        // Scale tree images to max height 400px
-        for (int i = 0; i < originalTreeImages.length; i++) {
-            if (originalTreeImages[i] != null) {
-                int newHeight = 150;
-                int newWidth = (int) (originalTreeImages[i].getWidth() * (150.0 / originalTreeImages[i].getHeight()));
-                treeImages[i] = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g2 = treeImages[i].createGraphics();
-                g2.drawImage(originalTreeImages[i], 0, 0, newWidth, newHeight, null);
-                g2.dispose();
-            }
-        }
-        
-        // Load rock images and scale them to max width 200px
-        rockImages = new BufferedImage[9];
-        BufferedImage[] originalRockImages = new BufferedImage[9];
-        originalRockImages[0] = ImageManager.loadBufferedImage("rocks/Rock1.png");
-        originalRockImages[1] = ImageManager.loadBufferedImage("rocks/Rock2.png");
-        originalRockImages[2] = ImageManager.loadBufferedImage("rocks/Rock3.png");
-        originalRockImages[3] = ImageManager.loadBufferedImage("rocks/Rock4.png");
-        originalRockImages[4] = ImageManager.loadBufferedImage("rocks/Rock5.png");
-        originalRockImages[5] = ImageManager.loadBufferedImage("rocks/Rock6.png");
-        originalRockImages[6] = ImageManager.loadBufferedImage("rocks/Rock7.png");
-        originalRockImages[7] = ImageManager.loadBufferedImage("rocks/Rock8.png");
-        originalRockImages[8] = ImageManager.loadBufferedImage("rocks/Rock9.png");
-        
-        // Scale rock images to max width 200px
-        for (int i = 0; i < originalRockImages.length; i++) {
-            if (originalRockImages[i] != null) {
-                int newWidth = 50;
-                int newHeight = (int) (originalRockImages[i].getHeight() * (50.0 / originalRockImages[i].getWidth()));
-                rockImages[i] = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_ARGB);
-                Graphics2D g = rockImages[i].createGraphics();
-                g.drawImage(originalRockImages[i], 0, 0, newWidth, newHeight, null);
-                g.dispose();
-            }
-        }
-        
-        // Debug output
-        int treesLoaded = 0;
-        int rocksLoaded = 0;
-        for (BufferedImage img : treeImages) {
-            if (img != null) treesLoaded++;
-        }
-        for (BufferedImage img : rockImages) {
-            if (img != null) rocksLoaded++;
-        }
-        System.out.println("Loaded " + treesLoaded + " tree images and " + rocksLoaded + " rock images");
-    }
+
     
     public void createGameEntities() {
         // Create player at world center
@@ -232,14 +171,14 @@ public class GamePanel extends JPanel {
         int playerStartY = WORLD_HEIGHT / 2 - 25; // Center of world minus half player height
         player = new PlayerSprite(this, playerStartX, playerStartY, WORLD_WIDTH, WORLD_HEIGHT);
         
-        // Create solid objects (walls, obstacles)
-        createSolidObjects();
+        // Use WorldGenerator to create solid objects (walls, obstacles)
+        solidObjects = worldGenerator.createSolidObjects(25, playerStartX, playerStartY, 250);
         
-        // Create collectibles
-        createCollectibles();
+        // Use WorldGenerator to create collectibles
+        collectibles = worldGenerator.createCollectibles(solidObjects, WIN_COLLECTIBLES, 40, 200);
         
-        // Create animated sprites
-        createAnimatedSprites();
+        // Use WorldGenerator to create animated sprites
+        animatedSprites = worldGenerator.createAnimatedSprites(this);
         
         // Create arrow sprite
         arrowSprite = new ArrowSprite();
@@ -251,220 +190,6 @@ public class GamePanel extends JPanel {
         // Reset counters
         collectedCount = 0;
         totalCollectibles = collectibles.size();
-    }
-    
-    private void createSolidObjects() {
-        solidObjects.clear();
-        
-        // Player start position (to avoid placing objects on top of player)
-        int playerStartX = WORLD_WIDTH / 2 - 25;  // 1225
-        int playerStartY = WORLD_HEIGHT / 2 - 25; // 1225
-        int safeZoneRadius = 250; // Minimum distance from player start (increased from 150)
-        
-        // Number of objects to generate (exactly 25)
-        int numObjects = 25;
-        
-        // Maximum attempts per object to prevent infinite loop
-        final int MAX_ATTEMPTS_PER_OBJECT = 1000;
-        
-        // Generate random tree and rock positions
-        for (int i = 0; i < numObjects; i++) {
-            int attempts = 0;
-            boolean objectPlaced = false;
-            
-            while (attempts < MAX_ATTEMPTS_PER_OBJECT && !objectPlaced) {
-                attempts++;
-                
-                boolean isTree = random.nextBoolean();
-                BufferedImage selectedImage;
-                
-                if (isTree) {
-                    // Select random tree image
-                    selectedImage = treeImages[random.nextInt(treeImages.length)];
-                } else {
-                    // Select random rock image
-                    selectedImage = rockImages[random.nextInt(rockImages.length)];
-                }
-                
-                if (selectedImage == null) {
-                    // Skip if image failed to load
-                    break;
-                }
-                
-                // Generate random position within world bounds
-                // Keep objects away from world edges (leave 50px margin)
-                int objX = 50 + random.nextInt(WORLD_WIDTH - 100);
-                int objY = 50 + random.nextInt(WORLD_HEIGHT - 100);
-                
-                // Check if position is safe (not too close to player start)
-                double distToPlayer = Math.sqrt(
-                    Math.pow(objX - playerStartX, 2) + 
-                    Math.pow(objY - playerStartY, 2)
-                );
-                
-                if (distToPlayer < safeZoneRadius) {
-                    // Skip this position and try again
-                    continue;
-                }
-                
-                // Check for overlap with existing objects
-                boolean overlaps = false;
-                Rectangle2D.Double newBounds = new Rectangle2D.Double(
-                    objX, objY, 
-                    selectedImage.getWidth(), 
-                    selectedImage.getHeight()
-                );
-                
-                for (SolidObject existing : solidObjects) {
-                    if (newBounds.intersects(existing.getBoundingRectangle())) {
-                        overlaps = true;
-                        break;
-                    }
-                }
-                
-                if (!overlaps) {
-                    solidObjects.add(new SolidObject(objX, objY, selectedImage));
-                    objectPlaced = true;
-                }
-                // Else: try again (loop continues)
-            }
-            
-            if (!objectPlaced) {
-                System.out.println("Warning: Could not place object after " + MAX_ATTEMPTS_PER_OBJECT + " attempts");
-            }
-        }
-        
-        System.out.println("Created " + solidObjects.size() + " random solid objects (trees and rocks)");
-    }
-    
-    private void createCollectibles() {
-        collectibles.clear();
-        
-        // Load coin strip image for animated collectibles
-        BufferedImage coinStrip = ImageManager.loadBufferedImage("coinStrip.png");
-        
-        // Collectible dimensions
-        final int COLLECTIBLE_SIZE = 40;
-        final int NUM_COLLECTIBLES = WIN_COLLECTIBLES; // 11
-        final int MIN_DISTANCE_FROM_SOLID = 200; // Minimum distance from solid objects
-        final int EDGE_MARGIN = 50; // Keep collectibles away from world edges
-        final int MAX_ATTEMPTS = 1000; // Max attempts per collectible to find valid position
-        
-        // Generate random positions for collectibles
-        int[][] positions = new int[NUM_COLLECTIBLES][2];
-        
-        for (int i = 0; i < NUM_COLLECTIBLES; i++) {
-            boolean validPosition = false;
-            int attempts = 0;
-            int x = 0, y = 0;
-            
-            while (!validPosition && attempts < MAX_ATTEMPTS) {
-                attempts++;
-                
-                // Generate random position within world bounds (with margin)
-                x = EDGE_MARGIN + random.nextInt(WORLD_WIDTH - 2 * EDGE_MARGIN - COLLECTIBLE_SIZE);
-                y = EDGE_MARGIN + random.nextInt(WORLD_HEIGHT - 2 * EDGE_MARGIN - COLLECTIBLE_SIZE);
-                
-                // Check if position is at least 200px away from all solid objects
-                validPosition = true;
-                
-                for (SolidObject solid : solidObjects) {
-                    Rectangle2D.Double solidBounds = solid.getBoundingRectangle();
-                    double distance = getDistanceFromRect(x, y, solidBounds);
-                    
-                    if (distance < MIN_DISTANCE_FROM_SOLID) {
-                        validPosition = false;
-                        break;
-                    }
-                }
-                
-                // Also check distance from other already-placed collectibles
-                if (validPosition) {
-                    for (int j = 0; j < i; j++) {
-                        double dist = Math.sqrt(
-                            Math.pow(x - positions[j][0], 2) + 
-                            Math.pow(y - positions[j][1], 2)
-                        );
-                        if (dist < MIN_DISTANCE_FROM_SOLID) {
-                            validPosition = false;
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            if (validPosition) {
-                positions[i][0] = x;
-                positions[i][1] = y;
-            } else {
-                // Fallback: place at random position even if not ideal
-                positions[i][0] = EDGE_MARGIN + random.nextInt(WORLD_WIDTH - 2 * EDGE_MARGIN);
-                positions[i][1] = EDGE_MARGIN + random.nextInt(WORLD_HEIGHT - 2 * EDGE_MARGIN);
-                System.out.println("Warning: Could not find valid position for collectible " + i + " after " + MAX_ATTEMPTS + " attempts");
-            }
-        }
-        
-        if (coinStrip != null) {
-            System.out.println("Coin strip loaded: " + coinStrip.getWidth() + "x" + coinStrip.getHeight());
-            
-            // Create StripAnimation to extract 18 frames (each 170px wide)
-            StripAnimation stripAnim = new StripAnimation(170, coinStrip.getHeight(), 18);
-            stripAnim.setAnimationSpeed(60); // ~60ms per frame for smooth coin animation
-            
-            // Extract frames from the coin strip (row 0)
-            BufferedImage[] coinFrames = stripAnim.extractFramesFromRow(coinStrip, 0);
-            System.out.println("Extracted " + coinFrames.length + " coin frames");
-            
-            // Create animation with the extracted frames
-            Animation coinAnimation = stripAnim.createAnimationFromFrames(coinFrames, 60, false);
-            
-            // Create animated collectibles at the randomly generated positions
-            for (int i = 0; i < positions.length; i++) {
-                // Create AnimatedSprite for this collectible
-                AnimatedSprite coinSprite = new AnimatedSprite(this, positions[i][0], positions[i][1], COLLECTIBLE_SIZE, COLLECTIBLE_SIZE);
-                coinSprite.setAnimation(coinAnimation);
-                
-                // Create collectible with the animated sprite
-                collectibles.add(new Collectible(positions[i][0], positions[i][1], COLLECTIBLE_SIZE, COLLECTIBLE_SIZE, coinSprite));
-            }
-            
-            System.out.println("Created " + collectibles.size() + " animated coin collectibles at random positions");
-        } else {
-            // Fallback to static collectibles if coin strip fails to load
-            System.out.println("Failed to load coinStrip.png, using static collectibles");
-            for (int i = 0; i < positions.length; i++) {
-                collectibles.add(new Collectible(positions[i][0], positions[i][1], 30, 30));
-            }
-        }
-    }
-    
-    /**
-     * Calculates the minimum distance from a point (x, y) to a rectangle.
-     * Returns 0 if the point is inside the rectangle.
-     */
-    private double getDistanceFromRect(int x, int y, Rectangle2D.Double rect) {
-        // Find the closest point on the rectangle to the given point
-        double closestX = Math.max(rect.getMinX(), Math.min(x, rect.getMaxX()));
-        double closestY = Math.max(rect.getMinY(), Math.min(y, rect.getMaxY()));
-        
-        // Calculate distance from point to closest point on rectangle
-        double distance = Math.sqrt(Math.pow(x - closestX, 2) + Math.pow(y - closestY, 2));
-        
-        return distance;
-    }
-    
-    private void createAnimatedSprites() {
-        animatedSprites.clear();
-        // Add some animated sprites
-        AnimatedSprite sprite = new AnimatedSprite(this, 500, 300, 50, 50);
-        
-        // Create animation with frames
-        Animation anim = new Animation(true);
-        anim.addFrame(ImageManager.loadImage("sprite1.png"), 200);
-        anim.addFrame(ImageManager.loadImage("sprite2.png"), 200);
-        sprite.setAnimation(anim);
-        
-        animatedSprites.add(sprite);
     }
     
     public void startGame() {
@@ -482,8 +207,8 @@ public class GamePanel extends JPanel {
         
         createGameEntities();
         
-        // Start background music
-        soundManager.playClip("background", true);
+        // Start background music at 60% volume
+        soundManager.playBackgroundMusic();
         
         // Start the game thread
         startGameThread();
@@ -509,7 +234,7 @@ public class GamePanel extends JPanel {
         if (gamePaused) {
             soundManager.stopClip("background");
         } else {
-            soundManager.playClip("background", true);
+            soundManager.playBackgroundMusic();
         }
     }
     
