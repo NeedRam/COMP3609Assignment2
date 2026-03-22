@@ -6,8 +6,7 @@ import java.util.Map;
 import javax.swing.JPanel;
 
 /**
- * Player sprite with keyboard movement (arrow keys/WASD)
- * and animation states (idle, walk).
+ * Player sprite with keyboard movement (arrow keys/WASD) and animation states
  */
 public class PlayerSprite extends Sprite {
     
@@ -25,7 +24,7 @@ public class PlayerSprite extends Sprite {
     
     // Animation states
     public static final int STATE_IDLE = 0;
-    public static final int STATE_WALK = 1;
+    public static final int STATE_RUN = 1;
     private int currentState;
     
     // Movement direction
@@ -55,13 +54,13 @@ public class PlayerSprite extends Sprite {
     
     // Animations
     private Animation idleAnim;
-    private Animation walkLeftAnim;      // LEFT - Row 0, no flip
-    private Animation walkRightAnim;      // RIGHT - Row 0, flipped
-    private Animation walkUpLeftAnim;    // UP+LEFT - Row 0, no flip
-    private Animation walkUpRightAnim;   // UP+RIGHT - Row 0, flipped
-    private Animation walkDownAnim;      // DOWN - Row 1, no flip
-    private Animation walkDownLeftAnim;  // DOWN+LEFT - Row 2, no flip
-    private Animation walkDownRightAnim; // DOWN+RIGHT - Row 2, flipped
+    private Animation runLeftAnim;      // LEFT - Row 0, no flip
+    private Animation runRightAnim;      // RIGHT - Row 0, flipped
+    private Animation runUpLeftAnim;    // UP+LEFT - Row 0, no flip
+    private Animation runUpRightAnim;   // UP+RIGHT - Row 0, flipped
+    private Animation runDownAnim;      // DOWN - Row 1, no flip
+    private Animation runDownLeftAnim;  // DOWN+LEFT - Row 2, no flip
+    private Animation runDownRightAnim; // DOWN+RIGHT - Row 2, flipped
     private Animation currentAnimation;
     
     // Sound manager reference
@@ -70,7 +69,7 @@ public class PlayerSprite extends Sprite {
     /**
      * Utility method to clamp a value between min and max.
      */
-    public static int clamp(int value, int min, int max) {
+    private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(value, max));
     }
     
@@ -117,18 +116,18 @@ public class PlayerSprite extends Sprite {
         height = StripAnimation.FRAME_HEIGHT;
         
         // Get animations from the map
-        walkLeftAnim = animations.get(0);      // Left - Row 0, no flip
-        walkRightAnim = animations.get(1);     // Right - Row 0, flipped
-        walkUpLeftAnim = animations.get(2);    // Up+Left - Row 0, no flip
-        walkUpRightAnim = animations.get(3);   // Up+Right - Row 0, flipped
-        walkDownAnim = animations.get(4);      // Down - Row 1, no flip
-        walkDownLeftAnim = animations.get(5);  // Down+Left - Row 2, no flip
-        walkDownRightAnim = animations.get(6); // Down+Right - Row 2, flipped
+        runLeftAnim = animations.get(0);      // Left - Row 0, no flip
+        runRightAnim = animations.get(1);     // Right - Row 0, flipped
+        runUpLeftAnim = animations.get(2);    // Up+Left - Row 0, no flip
+        runUpRightAnim = animations.get(3);   // Up+Right - Row 0, flipped
+        runDownAnim = animations.get(4);      // Down - Row 1, no flip
+        runDownLeftAnim = animations.get(5);  // Down+Left - Row 2, no flip
+        runDownRightAnim = animations.get(6); // Down+Right - Row 2, flipped
         
         // Create idle animation using first frame
         idleAnim = new Animation(true);
-        if (walkLeftAnim != null) {
-            // Get the first frame from walkLeftAnim for idle
+        if (runLeftAnim != null) {
+            // Get the first frame from runLeftAnim for idle
             StripAnimation stripAnim = new StripAnimation();
             BufferedImage spriteStrip = ImageManager.loadBufferedImage("images/playerRunningStrip.png");
             if (spriteStrip != null) {
@@ -154,52 +153,52 @@ public class PlayerSprite extends Sprite {
             case DIR_LEFT:
                 worldX = worldX - dx;
                 facingDirection = DIR_LEFT;
-                currentState = STATE_WALK;
-                animationToPlay = walkLeftAnim;
+                currentState = STATE_RUN;
+                animationToPlay = runLeftAnim;
                 break;
             case DIR_RIGHT:
                 worldX = worldX + dx;
                 facingDirection = DIR_RIGHT;
-                currentState = STATE_WALK;
-                animationToPlay = walkRightAnim;
+                currentState = STATE_RUN;
+                animationToPlay = runRightAnim;
                 break;
             case DIR_UP:
                 worldY = worldY - dy;
-                currentState = STATE_WALK;
-                animationToPlay = walkRightAnim;
+                currentState = STATE_RUN;
+                animationToPlay = runRightAnim;
                 break;
             case DIR_DOWN:
                 worldY = worldY + dy;
-                currentState = STATE_WALK;
-                animationToPlay = walkDownAnim;
+                currentState = STATE_RUN;
+                animationToPlay = runDownAnim;
                 break;
             case DIR_UP_LEFT:
                 worldX = worldX - dx;
                 worldY = worldY - dy;
                 facingDirection = DIR_UP_LEFT;
-                currentState = STATE_WALK;
-                animationToPlay = walkUpLeftAnim;
+                currentState = STATE_RUN;
+                animationToPlay = runUpLeftAnim;
                 break;
             case DIR_UP_RIGHT:
                 worldX = worldX + dx;
                 worldY = worldY - dy;
                 facingDirection = DIR_UP_RIGHT;
-                currentState = STATE_WALK;
-                animationToPlay = walkUpRightAnim;
+                currentState = STATE_RUN;
+                animationToPlay = runUpRightAnim;
                 break;
             case DIR_DOWN_LEFT:
                 worldX = worldX - dx;
                 worldY = worldY + dy;
                 facingDirection = DIR_DOWN_LEFT;
-                currentState = STATE_WALK;
-                animationToPlay = walkDownLeftAnim;
+                currentState = STATE_RUN;
+                animationToPlay = runDownLeftAnim;
                 break;
             case DIR_DOWN_RIGHT:
                 worldX = worldX + dx;
                 worldY = worldY + dy;
                 facingDirection = DIR_DOWN_RIGHT;
-                currentState = STATE_WALK;
-                animationToPlay = walkDownRightAnim;
+                currentState = STATE_RUN;
+                animationToPlay = runDownRightAnim;
                 break;
         }
         
@@ -292,10 +291,6 @@ public class PlayerSprite extends Sprite {
         return new Rectangle2D.Double(worldX, worldY, width, height);
     }
     
-    public Rectangle2D.Double getScreenBoundingRectangle() {
-        return new Rectangle2D.Double(screenX, screenY, width, height);
-    }
-    
     public int getWorldX() {
         return worldX;
     }
@@ -312,34 +307,7 @@ public class PlayerSprite extends Sprite {
         return screenY;
     }
     
-    public int getCurrentState() {
-        return currentState;
-    }
-    
-    public int getFacingDirection() {
-        return facingDirection;
-    }
-    
-    public int getDx() {
-        return dx;
-    }
-    
-    public int getDy() {
-        return dy;
-    }
-    
-    public void setDx(int dx) {
-        this.dx = dx;
-    }
-    
-    public void setDy(int dy) {
-        this.dy = dy;
-    }
-    
-    public void setSpeed(int s) {
-        dx = s;
-        dy = s;
-    }
+
     
     /**
      * Activates the speed boost (3x speed for 3 seconds).
@@ -367,18 +335,6 @@ public class PlayerSprite extends Sprite {
                 dy = baseSpeed;
             }
         }
-    }
-    
-    public boolean isSpeedBoostActive() {
-        return speedBoostActive;
-    }
-    
-    public long getSpeedBoostTimer() {
-        return speedBoostTimer;
-    }
-    
-    public int getBaseSpeed() {
-        return baseSpeed;
     }
     
     public void setWorldX(int x) {
