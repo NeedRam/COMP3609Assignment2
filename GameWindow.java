@@ -25,7 +25,7 @@ public class GameWindow extends JFrame
     private SoundManager soundManager;
     
     public GameWindow() {
-        setTitle("Visual Playground");
+        setTitle("Coin Collector");
         setSize(800, 700);
         
         soundManager = SoundManager.getInstance();

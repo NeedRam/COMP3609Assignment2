@@ -7,10 +7,6 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Random;
 
-/**
- * Main game panel with double buffering, game loop, 
- * large background scrolling, and collision detection.
- */
 public class GamePanel extends JPanel {
     
     // Game state
@@ -18,7 +14,7 @@ public class GamePanel extends JPanel {
     private boolean gamePaused;
     private boolean gameOver;
     
-    // World dimensions (larger than panel) - set to 2500x2500
+    // World dimensions
     private int WORLD_WIDTH = 2500;
     private int WORLD_HEIGHT = 2500;
     
@@ -39,10 +35,8 @@ public class GamePanel extends JPanel {
     private boolean upKeyPressed;
     private boolean downKeyPressed;
     
-    // Background
     private BufferedImage backgroundImage;
     
-    // Random number generator
     private Random random;
     
     // World generator for entity creation
@@ -74,18 +68,17 @@ public class GamePanel extends JPanel {
     // Golden tint effect for coin pickup
     private boolean goldenTintActive;
     private long goldenTintTimer;
-    private static final long GOLDEN_TINT_DURATION = 1000; // 1 second in milliseconds
+    private static final long GOLDEN_TINT_DURATION = 1000;
     private static final int GOLDEN_TINT_COLOR = 0x80FFD700; // Semi-transparent golden (ARGB)
     
     // Game over exit timer
     private long gameOverTime;
-    private static final long GAME_OVER_EXIT_DELAY = 1500; // 1500ms in milliseconds
+    private static final long GAME_OVER_EXIT_DELAY = 1500;
     private boolean gameExiting;
     
-    // Info panel reference
     private InfoPanel infoPanel;
     
-    // Game thread for precise timing (replaces javax.swing.Timer)
+    // Game thread for precise timing
     private Thread gameThread;
     private volatile boolean gameThreadRunning;
     private static final int TARGET_FRAME_TIME = 40; // 40ms = 25 FPS
@@ -157,8 +150,7 @@ public class GamePanel extends JPanel {
         gameOverTime = 0;
         gameExiting = false;
         
-        // Initialize game thread (will be started when game begins)
-        // Using a dedicated thread instead of javax.swing.Timer for precise timing
+        // Initialize game thread
         gameThread = null;
         gameThreadRunning = false;
     }
@@ -171,7 +163,7 @@ public class GamePanel extends JPanel {
         int playerStartY = WORLD_HEIGHT / 2 - 25; // Center of world minus half player height
         player = new PlayerSprite(this, playerStartX, playerStartY, WORLD_WIDTH, WORLD_HEIGHT);
         
-        // Use WorldGenerator to create solid objects (walls, obstacles)
+        // Use WorldGenerator to create solid objects
         solidObjects = worldGenerator.createSolidObjects(25, playerStartX, playerStartY, 250);
         
         // Use WorldGenerator to create collectibles
@@ -244,9 +236,7 @@ public class GamePanel extends JPanel {
         stopGameThread();
     }
     
-    /**
-     * Starts the dedicated game thread for precise timing.
-     */
+    // Starts the dedicated game thread for precise timing.
     private void startGameThread() {
         if (gameThread != null && gameThread.isAlive()) {
             return; // Thread already running
@@ -317,10 +307,7 @@ public class GamePanel extends JPanel {
         gameThread.setPriority(Thread.MAX_PRIORITY);
         gameThread.start();
     }
-    
-    /**
-     * Stops the game thread.
-     */
+
     private void stopGameThread() {
         gameThreadRunning = false;
         if (gameThread != null) {
@@ -339,17 +326,15 @@ public class GamePanel extends JPanel {
         gameRunning = false;
         soundManager.stopAll();
         
-        // Do NOT stop the game timer - let it keep running to check elapsed time
-        
+        // keep game time running to check elapsed time
         // Set game over timestamp for exit timer
         gameOverTime = System.currentTimeMillis();
         gameExiting = false;
         
         if (won) {
             activeEffectName = "GrayScale";
-            // Create full-screen grayscale effect for the background (instant, no fade)
+            // Create full-screen grayscale effect for the background
             if (backgroundImage != null) {
-                // Create grayscale version of background
                 BufferedImage grayBg = new BufferedImage(backgroundImage.getWidth(), backgroundImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
                 Graphics2D g2 = grayBg.createGraphics();
                 g2.drawImage(backgroundImage, 0, 0, null);
@@ -395,11 +380,9 @@ public class GamePanel extends JPanel {
         int oldWorldX = player.getWorldX();
         int oldWorldY = player.getWorldY();
         
-        // Update player movement - check DIAGONAL directions FIRST (most specific)
-        // Then check BASE directions
         int moveDirection = 0;
         
-        // Check diagonal directions first (most specific)
+        // Check diagonal directions first
         if (upKeyPressed && leftKeyPressed) {
             moveDirection = PlayerSprite.DIR_UP_LEFT;
         } else if (upKeyPressed && rightKeyPressed) {
@@ -467,7 +450,6 @@ public class GamePanel extends JPanel {
         // Play movement sound
         if ((leftKeyPressed || rightKeyPressed || upKeyPressed || downKeyPressed) && 
             soundManager != null && !soundManager.isPlaying("footstep")) {
-            // Sound would play here
         }
         
         repaint();
@@ -480,7 +462,7 @@ public class GamePanel extends JPanel {
      * - When player can move freely, player stays centered on screen
      * - When camera would go past world edges (0,0 or WORLD_WIDTH/WORLD_HEIGHT), 
      *   camera is clamped and player appears at edge instead of centered
-     * - Camera is clamped to world boundaries so we can't see outside the world
+     * - Camera is clamped to world boundaries
      */
     private void updateCamera() {
         // Calculate ideal camera position to center player on screen
@@ -494,8 +476,6 @@ public class GamePanel extends JPanel {
         cameraY = player.getWorldY() - panelHeight / 2 + playerHeight / 2;
         
         // Clamp camera to world boundaries
-        // This ensures we can't see outside the world (2500x2500)
-        // and when at boundaries, player appears at edge instead of going off-screen
         cameraX = Math.max(0, Math.min(cameraX, WORLD_WIDTH - panelWidth));
         cameraY = Math.max(0, Math.min(cameraY, WORLD_HEIGHT - panelHeight));
     }
@@ -550,27 +530,6 @@ public class GamePanel extends JPanel {
         }
     }
     
-    public void drawGameEntities() {
-        repaint();
-    }
-    
-    public void applyEffect(String effectName) {
-        activeEffectName = effectName;
-        
-        // Create appropriate effect
-        switch (effectName) {
-            case "disappear":
-                effects.add(new DisappearFX(100, 100, 100, 100, "effect.png"));
-                break;
-            case "grayscale":
-                effects.add(new GrayScaleFX(300, 100, 100, 100, "effect.png"));
-                break;
-            case "tint":
-                effects.add(new TintFX(500, 100, 100, 100, "effect.png", 0xFF0000));
-                break;
-        }
-    }
-    
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -586,31 +545,23 @@ public class GamePanel extends JPanel {
             }
         }
         
-        // Use double buffering
+        // double buffering
         if (doubleBufferImage != null) {
-            // Draw to buffer
             drawToBuffer(doubleBufferG2);
-            
-            // Draw buffer to screen
             g.drawImage(doubleBufferImage, 0, 0, null);
         } else {
-            // Fallback to direct drawing
             drawToBuffer(g2);
         }
     }
     
     private void drawToBuffer(Graphics2D g2) {
-        // Check if we should apply grayscale effect (when all 11 coins collected and game over)
+        // Check if we should apply grayscale effect (when all coins are collected and game over)
         boolean applyGrayScale = (gameOver && collectedCount >= WIN_COLLECTIBLES && screenGrayScaleFX != null);
         
         // Clear background
         g2.setColor(Color.BLACK);
         g2.fillRect(0, 0, getWidth(), getHeight());
         
-        // Draw background with camera scrolling
-        // The background image (2500x2500) is drawn offset by -cameraX, -cameraY
-        // This creates the scrolling effect - as player moves right, camera moves right,
-        // and background moves left (opposite direction)
         if (backgroundImage != null) {
             g2.drawImage(backgroundImage, -cameraX, -cameraY, WORLD_WIDTH, WORLD_HEIGHT, null);
         }
@@ -619,7 +570,7 @@ public class GamePanel extends JPanel {
             // Draw start screen
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 36));
-            g2.drawString("Visual Playground", 250, 280);
+            g2.drawString("Coin Collector", 275, 280);
             g2.setFont(new Font("Arial", Font.PLAIN, 18));
             g2.drawString("Press Start to begin", 320, 330);
             return;
@@ -631,7 +582,7 @@ public class GamePanel extends JPanel {
             solid.draw(g2, cameraX, cameraY);
         }
         
-        // Draw collectibles (11 coins)
+        // Draw collectibles
         for (Collectible collectible : collectibles) {
             collectible.draw(g2);
         }
@@ -646,7 +597,7 @@ public class GamePanel extends JPanel {
             player.draw(g2);
         }
         
-        // Draw arrow sprite (on top of player)
+        // Draw arrow sprite
         if (arrowSprite != null) {
             arrowSprite.draw(g2);
         }
@@ -656,7 +607,7 @@ public class GamePanel extends JPanel {
             effect.draw(g2);
         }
         
-        // Draw golden tint overlay if active (but not when grayscale effect is active)
+        // Draw golden tint overlay if active, overridden by grayscale
         if (goldenTintActive && !applyGrayScale) {
             g2.setColor(new Color(
                 (GOLDEN_TINT_COLOR >> 16) & 0xFF,
@@ -667,9 +618,8 @@ public class GamePanel extends JPanel {
             g2.fillRect(0, 0, getWidth(), getHeight());
         }
         
-        // Apply grayscale to entire screen if needed (including all game entities)
+        // Apply grayscale to entire screen
         if (applyGrayScale && doubleBufferImage != null) {
-            // Get pixels from the double buffer
             int width = getWidth();
             int height = getHeight();
             
@@ -704,34 +654,15 @@ public class GamePanel extends JPanel {
         // Draw game over screen
         if (gameOver) {
             if (!applyGrayScale) {
-                // Dark overlay for regular game over (not all coins collected)
                 g2.setColor(new Color(0, 0, 0, 150));
                 g2.fillRect(0, 0, getWidth(), getHeight());
             }
             
             g2.setColor(Color.WHITE);
             g2.setFont(new Font("Arial", Font.BOLD, 48));
-            
-            // Always show "Game Over" regardless of win condition
             g2.drawString("Game Over", 270, 280);
             
-            // Don't display the number of coins collected
         }
-    }
-    
-    private void updateFPS() {
-        // Calculate FPS based on actual frame time from the game thread
-        // The game thread runs at TARGET_FRAME_TIME (40ms = 25 FPS)
-        // Use a simple calculation since we know the target rate
-        long currentTime = System.currentTimeMillis();
-        long delta = currentTime - lastFrameTime;
-        
-        if (delta > 0) {
-            fps = (int)(1000 / delta);
-        }
-        
-        // Update lastFrameTime
-        lastFrameTime = currentTime;
     }
     
     /**
@@ -740,7 +671,7 @@ public class GamePanel extends JPanel {
      */
     private void updateFPSFromGameThread() {
         // Use the actual frame time from the game loop
-        fps = 1000 / TARGET_FRAME_TIME; // Should be 25 FPS
+        fps = 1000 / TARGET_FRAME_TIME;
     }
     
     // Key state setters

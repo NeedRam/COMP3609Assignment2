@@ -1,7 +1,7 @@
 import javax.swing.*;
 
 /**
- * Entry point for Visual Playground game application.
+ * Entry point for Coin Collector game application.
  * Creates and displays the game window.
  */
 public class GameApplication {

@@ -54,13 +54,13 @@ public class PlayerSprite extends Sprite {
     
     // Animations
     private Animation idleAnim;
-    private Animation runLeftAnim;      // LEFT - Row 0, no flip
+    private Animation runLeftAnim;       // LEFT - Row 0, no flip
     private Animation runRightAnim;      // RIGHT - Row 0, flipped
-    private Animation runUpLeftAnim;    // UP+LEFT - Row 0, no flip
-    private Animation runUpRightAnim;   // UP+RIGHT - Row 0, flipped
-    private Animation runDownAnim;      // DOWN - Row 1, no flip
-    private Animation runDownLeftAnim;  // DOWN+LEFT - Row 2, no flip
-    private Animation runDownRightAnim; // DOWN+RIGHT - Row 2, flipped
+    private Animation runUpLeftAnim;     // UP+LEFT - Row 0, no flip
+    private Animation runUpRightAnim;    // UP+RIGHT - Row 0, flipped
+    private Animation runDownAnim;       // DOWN - Row 1, no flip
+    private Animation runDownLeftAnim;   // DOWN+LEFT - Row 2, no flip
+    private Animation runDownRightAnim;  // DOWN+RIGHT - Row 2, flipped
     private Animation currentAnimation;
     
     // Sound manager reference
@@ -96,9 +96,7 @@ public class PlayerSprite extends Sprite {
         loadSpriteAnimations();
     }
     
-    /**
-     * Load sprite animations using StripAnimation class.
-     */
+    // Load sprite animations using StripAnimation class.
     private void loadSpriteAnimations() {
         // Use StripAnimation to load sprite strip and get animations
         Map<Integer, Animation> animations = StripAnimation.loadSpriteAnimations("images/playerRunningStrip.png", 80);
@@ -124,7 +122,6 @@ public class PlayerSprite extends Sprite {
         runDownLeftAnim = animations.get(5);  // Down+Left - Row 2, no flip
         runDownRightAnim = animations.get(6); // Down+Right - Row 2, flipped
         
-        // Create idle animation using first frame
         idleAnim = new Animation(true);
         if (runLeftAnim != null) {
             // Get the first frame from runLeftAnim for idle
@@ -210,11 +207,6 @@ public class PlayerSprite extends Sprite {
         worldY = clamp(worldY, 0, worldHeight - height);
     }
     
-    /**
-     * Helper method to set animation and play footstep sound.
-     * 
-     * @param anim The animation to set as current animation
-     */
     private void setAnimationAndPlaySound(Animation anim) {
         if (anim != null) {
             currentAnimation = anim;
@@ -227,11 +219,7 @@ public class PlayerSprite extends Sprite {
     
     /**
      * Updates the screen position based on world position and camera offset.
-     * 
      * Screen position = world position - camera position.
-     * The camera is already clamped to world bounds, so this formula correctly
-     * centers the player on screen when not at boundaries, and shows player
-     * at the edge when camera hits world boundaries.
      */
     public void updateScreenPosition(int cameraX, int cameraY) {
         // Calculate screen position based on camera offset
@@ -251,28 +239,13 @@ public class PlayerSprite extends Sprite {
         soundManager.stopFootstep();
     }
     
-    /**
-     * Update the current animation.
-     */
     public void update() {
         if (currentAnimation != null) {
             currentAnimation.update();
         }
     }
     
-    /**
-     * Draws the player at screen position.
-     * 
-     * The player is drawn at screenX, screenY which is calculated as:
-     * screenX = worldX - cameraX
-     * screenY = worldY - cameraY
-     * 
-     * Since camera is centered on player, player always appears at
-     * center of screen (400, 300) while moving through the world.
-     * 
-     * Each animation frame is drawn at its own natural size rather than
-     * being stretched to fit a fixed size.
-     */
+    // Draws the player at screen position.
     public void draw(Graphics2D g2) {
         // Get the current frame image and update dimensions to match
         if (currentAnimation != null && currentAnimation.getImage() != null) {
@@ -310,7 +283,7 @@ public class PlayerSprite extends Sprite {
 
     
     /**
-     * Activates the speed boost (3x speed for 3 seconds).
+     * Activates the speed boost (3x speed for 1 seconds).
      * Multiple activations reset the timer.
      */
     public void activateSpeedBoost() {
@@ -320,10 +293,6 @@ public class PlayerSprite extends Sprite {
         speedBoostTimer = SPEED_BOOST_DURATION;
     }
     
-    /**
-     * Updates the speed boost timer. Call this in the game loop.
-     * @param deltaTime time elapsed since last update in milliseconds
-     */
     public void updateSpeedBoost(long deltaTime) {
         if (speedBoostActive) {
             speedBoostTimer -= deltaTime;
